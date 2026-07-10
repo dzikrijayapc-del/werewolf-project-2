@@ -325,25 +325,73 @@ document.getElementById("btn-resolve-night").addEventListener("click", () => {
     });
 });
 
-// MC: Eksekusi Hasil Voting Siang (TIDAK ADA DUPLIKASI LAGI)
-document.getElementById("btn-mc-execute").addEventListener("click", () => {
-    const targetId = document.getElementById("mc-execute-select").value;
-    if(!targetId) return alert("Pilih pemain yang akan dieksekusi!");
-    
-    const targetName = allPlayers[targetId].name;
-    const targetRole = rollenUebersetzung[allPlayers[targetId].role] || allPlayers[targetId].role;
+// ==========================================
+// SISTEM OTOMATISASI VOTING SIANG & SERI
+// ==========================================
 
-    if(confirm(`Anda akan menggantung ${targetName}. Perannya adalah ${targetRole}. Lanjutkan?`)) {
+// 1. Logika Tombol Bacakan Vote (MC)
+document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
+    const votes = Object.values(currentDayVotes);
+    
+    if (votes.length === 0) {
+        return alert("Belum ada pemain yang memberikan suara!");
+    }
+
+    // Hitung kemunculan tiap vote
+    const tally = {};
+    votes.forEach(targetId => {
+        tally[targetId] = (tally[targetId] || 0) + 1;
+    });
+
+    let maxVotes = 0;
+    let topTargets = [];
+
+    // Cari tahu siapa yang mendapat suara terbanyak
+    Object.entries(tally).forEach(([targetId, count]) => {
+        if (count > maxVotes) {
+            maxVotes = count;
+            topTargets = [targetId]; // Reset daftar jika ada skor baru tertinggi
+        } else if (count === maxVotes) {
+            topTargets.push(targetId); // Tambahkan ke daftar jika skor seri
+        }
+    });
+
+    // Cek Kondisi: Apakah ada 1 pemenang absolut, atau seri?
+    if (topTargets.length === 1) {
+        // ADA PEMENANG VOTE (Hanya 1 orang dengan suara tertinggi)
+        const targetId = topTargets[0];
+        const targetName = allPlayers[targetId].name;
+        
+        alert(`Kalkulasi Selesai: "${targetName}" akan dieksekusi dengan ${maxVotes} suara!`);
+
         const updates = {
             [`players/${targetId}/isDead`]: true,
-            gameState: "nacht", 
+            gameState: "nacht", // Otomatis balik ke malam
             nightActions: { wolfTarget: "", guardianTarget: "" },
-            votes: null 
+            votes: null,
+            voteAlert: null // Bersihkan notifikasi seri sebelumnya
         };
+        
         update(ref(db), updates).then(() => {
-            alert(`${targetName} telah dieksekusi.`);
             checkWinConditions(); 
         });
+
+    } else {
+        // VOTE SERI (Lebih dari 1 orang memiliki suara tertinggi yang sama)
+        // Kirim "sinyal" alert ke database agar semua layar pemain memunculkan notifikasi
+        update(ref(db), {
+            votes: null, // Reset vote agar mereka bisa klik vote lagi
+            voteAlert: Date.now() // Gunakan timestamp sebagai sinyal trigger unik
+        });
+    }
+});
+
+// 2. Global Listener untuk Deklarasi Seri (Memicu pop-up di layar SEMUA ORANG)
+onValue(ref(db, "voteAlert"), (snap) => {
+    const alertTrigger = snap.val();
+    if (alertTrigger) {
+        // Deklarasi akan muncul di layar semua player dan MC secara bersamaan
+        alert("⚖️ VOTE SERI! ⚖️\nTidak ada eksekusi. Silakan diskusikan kembali dan VOTE ULANG!!");
     }
 });
 
