@@ -148,25 +148,6 @@
                 </div>
             </div>
             
-     <div id="mc-screen" class="hidden">
-            <h2 style="color: #ff3b30;">Moderator Game (MC)</h2>
-            
-            <div id="mc-lobby-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px;">
-                <h3>Pemain Terdaftar (<span id="player-count-badge">0</span>/8):</h3>
-                <ul id="mc-players-list" style="text-align: left; color: #ff9500;"></ul>
-                <button id="btn-start-game" class="action-btn" style="background-color: #ff9500; margin-top: 15px;">Acak Peran & Mulai 🃏</button>
-                <button id="btn-reset-players" class="action-btn" style="background-color: #ff3b30;">Hapus & Reset Semua Pemain 🗑️</button>
-            </div>
-
-            <div id="mc-controls-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                <h3>Fase Permainan</h3>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Lobi</button>
-                    <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Malam 🌙</button>
-                    <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Siang ☀️</button>
-                </div>
-            </div>
-            
             <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
                 <h3 style="color: #a0a0ff;">Aktivitas Malam Ini:</h3>
                 <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
@@ -185,13 +166,14 @@
                 </div>
             </div>
         </div>
+    </div>
 
     <div id="dead-screen" class="dead-screen hidden">
         <h1>KAMU SUDAH MATI 💀</h1>
         <p>Kamu sudah tereliminasi dan tidak bisa berpartisipasi lagi.</p>
     </div>
 
-  <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95); color: #34c759;">
+    <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95); color: #34c759;">
         <h1 id="win-message" style="font-size: 3rem;">-</h1>
         <p id="win-submessage" style="font-size: 1.5rem; color: #fff;"></p>
         
@@ -202,6 +184,7 @@
         
         <p id="player-win-wait" class="hidden" style="color: #a0a0ff; margin-top: 20px;">Menunggu MC untuk memulai permainan baru...</p>
     </div>
+    
     <script type="module" src="script.js"></script>
 </body>
 </html>
