@@ -1,190 +1,321 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Werewolf Project</title>
-    <style>
-        body {
-            background-color: #121212; color: #e0e0e0;
-            font-family: 'Segoe UI', Arial, sans-serif; text-align: center;
-            padding: 20px; margin: 0;
-        }
-        .container {
-            max-width: 500px; margin: 40px auto; background: #1e1e1e;
-            padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.8);
-            border: 1px solid #2a2a2a;
-        }
-        h1, h2, h3 { margin-bottom: 20px; }
-        .hidden { display: none !important; }
-        
-        .dead-screen {
-            background-color: #000000; color: #ff3b30;
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999;
-        }
-        .role-badge {
-            display: inline-block; background: #2c2c2e; padding: 12px 24px;
-            border-radius: 30px; font-size: 1.4em; font-weight: bold;
-            margin-top: 15px; border: 2px solid #ff3b30;
-            box-shadow: 0 0 15px rgba(255, 59, 48, 0.3);
-        }
-        input, select {
-            width: 100%; padding: 12px; margin-bottom: 15px; background: #2c2c2e;
-            color: #fff; border: 1px solid #444; border-radius: 8px; font-size: 1rem; text-align: center;
-            box-sizing: border-box;
-        }
-        .action-btn {
-            color: white; border: none; padding: 12px 15px; cursor: pointer;
-            width: 100%; border-radius: 8px; font-weight: bold; font-size: 1.1rem;
-            margin-bottom: 10px;
-            transition: background 0.2s ease;
-        }
-        .action-btn:hover { opacity: 0.9; }
-        #btn-wolf-kill { background-color: #ff3b30; }
-        #btn-guardian-protect { background-color: #0a84ff; }
-        ul { list-style: none; padding: 0; }
-        li { background: #2c2c2e; padding: 10px; margin: 5px 0; border-radius: 6px; }
-        
-        /* Gaya Khusus Indikator Waktu */
-        .phase-banner {
-            padding: 12px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; 
-            margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;
-            transition: all 0.3s ease;
-        }
-        .phase-night { background: #1c1c1e; color: #a0a0ff; border: 1px solid #5856d6; }
-        .phase-day { background: #ffcc00; color: #000; border: 1px solid #e6b800; }
-    </style>
-</head>
-<body>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    <div class="container" id="main-container">
-        <div style="background: #2c2c2e; padding: 12px; margin-bottom: 25px; border-radius: 8px; border: 1px dashed #ff3b30; text-align: left;">
-            <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer (Simulasi Akun):</label>
-            <select id="dev-role-select" style="margin-top: 5px; margin-bottom: 0;">
-                <option value="mc">Moderator (MC)</option>
-                <option value="player_1">Pemain 1</option>
-                <option value="player_2">Pemain 2</option>
-                <option value="player_3">Pemain 3</option>
-                <option value="player_4">Pemain 4</option>
-                <option value="player_5">Pemain 5</option>
-                <option value="player_6">Pemain 6</option>
-                <option value="player_7">Pemain 7</option>
-                <option value="player_8">Pemain 8</option>
-            </select>
-        </div>
+const firebaseConfig = {
+    apiKey: "AIzaSyBxwxDkLTyVpXANDJPIpOC-5YHLtoDoqTs",
+    authDomain: "tugas-herr-khana.firebaseapp.com",
+    databaseURL: "https://tugas-herr-khana-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "tugas-herr-khana",
+    storageBucket: "tugas-herr-khana.firebasestorage.app"
+};
 
-        <div id="loading-screen">
-            <h2 style="color: #ff3b30;">Mohon tunggu...</h2>
-            <p>Menghubungkan ke server...</p>
-        </div>
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        <div id="player-screen" class="hidden">
-            <div id="lobby-registration-panel" class="hidden">
-                <h2 style="color: #ff3b30;">Selamat Datang!</h2>
-                <input type="text" id="player-name-input" placeholder="Ketik nama kamu di sini...">
-                <button id="btn-register-player" class="action-btn" style="background-color: #34c759;">Daftar Sekarang</button>
-            </div>
+let currentPlayerId = localStorage.getItem("myPlayerId");
+if (!currentPlayerId || currentPlayerId === "mc") {
+    currentPlayerId = "player_" + Math.floor(Math.random() * 1000000);
+    localStorage.setItem("myPlayerId", currentPlayerId);
+}
 
-            <div id="lobby-waiting-panel" class="hidden">
-                <h2 style="color: #ff3b30;">Lobi Permainan</h2>
-                <p>Halo <strong id="waiting-player-name" style="color: #ff3b30;">-</strong>,</p>
-                <p>Kamu sudah terdaftar. Mohon tunggu sampai pemain lain berkumpul (Min. 4, Maks. 8) dan MC memulai game.</p>
-            </div>
+const isMC = new URLSearchParams(window.location.search).get('role') === 'mc';
+const devRoleSelect = document.getElementById("dev-role-select");
 
-            <div id="gameplay-role-panel" class="hidden">
-                <div id="phase-indicator" class="phase-banner hidden">
-                    <span id="phase-name">Memuat Fase...</span>
-                </div>
+if (isMC) {
+    devRoleSelect.value = "mc";
+    document.getElementById("loading-screen").classList.add("hidden");
+    document.getElementById("mc-screen").classList.remove("hidden");
+} else {
+    if (devRoleSelect.querySelector(`option[value="${currentPlayerId}"]`)) {
+        devRoleSelect.value = currentPlayerId;
+    }
+    document.getElementById("loading-screen").classList.add("hidden");
+    document.getElementById("player-screen").classList.remove("hidden");
+}
 
-                <h2 style="color: #ff3b30;">Peran Kamu</h2>
-                <div class="role-badge" id="player-role">Memuat...</div>
-                
-                <div id="player-action-area" style="margin-top: 40px;">
-                    <p id="action-wait-message">Tunggu instruksi selanjutnya...</p>
-                    
-                    <div id="action-werwolf" class="hidden">
-                        <h3 style="color: #ff3b30;">Aksi Werewolf 🐺</h3>
-                        <p>Pilih pemain yang ingin kamu mangsa:</p>
-                        <select id="wolf-target-select"></select>
-                        <button id="btn-wolf-kill" class="action-btn">Mangsa</button>
-                    </div>
+devRoleSelect.addEventListener("change", (e) => {
+    if (e.target.value === "mc") {
+        window.location.href = "?role=mc";
+    } else {
+        localStorage.setItem("myPlayerId", e.target.value);
+        window.location.href = "?";
+    }
+});
 
-                    <div id="action-guardian" class="hidden">
-                        <h3 style="color: #0a84ff;">Aksi Pelindung 🛡️</h3>
-                        <p>Pilih pemain yang ingin kamu lindungi:</p>
-                        <select id="guardian-target-select"></select>
-                        <button id="btn-guardian-protect" class="action-btn">Lindungi</button>
-                    </div>
+const rollenUebersetzung = {
+    "Werewolf": "Werewolf 🐺",
+    "Villager": "Warga Desa 🧑‍🌾",
+    "Guardian": "Pelindung (Guardian) 🛡️",
+    "Seer": "Penerawang (Seer) 🔮",
+    "Witch": "Penyihir (Witch) 🧪",
+    "Belum ada": "Menunggu pembagian peran..."
+};
 
-                    <div id="action-day-vote" class="hidden">
-                        <h3 style="color: #ffcc00;">Fase Voting Siang ☀️</h3>
-                        <p>Pilih siapa yang ingin kamu gantung:</p>
-                        <select id="day-vote-select"></select>
-                        <button id="btn-submit-vote" class="action-btn" style="background-color: #ffcc00; color: black;">Kirim Vote</button>
-                        <p id="vote-status-msg" style="color: #34c759; margin-top: 10px;" class="hidden">Vote berhasil dikirim ke MC!</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+let currentGameState = "lobby";
+let allPlayers = {};
+let currentNightActions = {};
+let currentDayVotes = {};
+let currentPlayerData = null;
 
-        <div id="mc-screen" class="hidden">
-            <h2 style="color: #ff3b30;">Moderator Game (MC)</h2>
-            
-            <div id="mc-lobby-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px;">
-                <h3>Pemain Terdaftar (<span id="player-count-badge">0</span>/8):</h3>
-                <ul id="mc-players-list" style="text-align: left; color: #ff9500;"></ul>
-                <button id="btn-start-game" class="action-btn" style="background-color: #ff9500; margin-top: 15px;">Acak Peran & Mulai 🃏</button>
-                <button id="btn-reset-players" class="action-btn" style="background-color: #ff3b30;">Hapus & Reset Semua Pemain 🗑️</button>
-            </div>
-
-            <div id="mc-controls-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                <h3>Fase Permainan</h3>
-                <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Lobi</button>
-                    <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Malam 🌙</button>
-                    <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Siang ☀️</button>
-                </div>
-            </div>
-            
-            <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
-                <h3 style="color: #a0a0ff;">Aktivitas Malam Ini:</h3>
-                <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
-                <p>🛡️ Target Pelindung: <span id="mc-guardian-target" style="color: #0a84ff; font-weight: bold;">-</span></p>
-                <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam (Lanjut Siang)</button>
-            </div>
-
-            <div id="mc-day-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
-                <h3 style="color: #ffcc00;">Log Hasil Voting (Siang):</h3>
-                <ul id="mc-vote-results" style="color: white; margin-bottom: 15px;"></ul>
-                
-                <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
-                    <p style="color: #ff9500; font-weight: bold;">Kalkulasi Eksekusi Otomatis:</p>
-                    <p style="font-size: 0.9em; color: #aaa; margin-bottom: 15px;">Sistem akan menghitung suara terbanyak. Jika seri, pemain akan diminta vote ulang.</p>
-                    <button id="btn-mc-tally-vote" class="action-btn" style="background-color: #ffcc00; color: black;">Bacakan Vote & Eksekusi Otomatis ⚖️</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="dead-screen" class="dead-screen hidden">
-        <h1>KAMU SUDAH MATI 💀</h1>
-        <p>Kamu sudah tereliminasi dan tidak bisa berpartisipasi lagi.</p>
-    </div>
-
-    <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95); color: #34c759;">
-        <h1 id="win-message" style="font-size: 3rem;">-</h1>
-        <p id="win-submessage" style="font-size: 1.5rem; color: #fff;"></p>
-        
-        <div id="mc-win-controls" class="hidden" style="margin-top: 30px; display: flex; gap: 15px; flex-direction: column; width: 80%; max-width: 300px;">
-            <button id="btn-play-again" class="action-btn" style="background-color: #34c759;">Main Lagi (Nama Terdaftar) 🔄</button>
-            <button id="btn-restart-all" class="action-btn" style="background-color: #ff3b30;">Ulangi dari Awal (Reset Lobi) 🗑️</button>
-        </div>
-        
-        <p id="player-win-wait" class="hidden" style="color: #a0a0ff; margin-top: 20px;">Menunggu MC untuk memulai permainan baru...</p>
-    </div>
+function renderPlayerUI() {
+    if (isMC) return;
     
-    <script type="module" src="script.js"></script>
-</body>
-</html>
+    document.getElementById("lobby-registration-panel").classList.add("hidden");
+    document.getElementById("lobby-waiting-panel").classList.add("hidden");
+    document.getElementById("gameplay-role-panel").classList.add("hidden");
+    document.getElementById("dead-screen").classList.add("hidden");
+
+    if (!currentPlayerData || !currentPlayerData.name) {
+        document.getElementById("lobby-registration-panel").classList.remove("hidden");
+        return;
+    } 
+    
+    if (currentGameState === "lobby") {
+        document.getElementById("lobby-waiting-panel").classList.remove("hidden");
+        document.getElementById("waiting-player-name").innerText = currentPlayerData.name;
+    } else {
+        if (currentPlayerData.isDead) {
+            document.getElementById("dead-screen").classList.remove("hidden");
+        } else {
+            document.getElementById("gameplay-role-panel").classList.remove("hidden");
+            document.getElementById("player-role").innerText = rollenUebersetzung[currentPlayerData.role] || currentPlayerData.role;
+            
+            const phaseIndicator = document.getElementById("phase-indicator");
+            const phaseName = document.getElementById("phase-name");
+            phaseIndicator.classList.remove("hidden", "phase-night", "phase-day");
+            
+            document.getElementById("action-werwolf").classList.add("hidden");
+            document.getElementById("action-guardian").classList.add("hidden");
+            document.getElementById("action-day-vote").classList.add("hidden");
+            const waitMsg = document.getElementById("action-wait-message");
+            waitMsg.classList.remove("hidden");
+
+            if (currentGameState === "nacht") {
+                phaseIndicator.classList.add("phase-night");
+                phaseName.innerText = "🌙 Malam Hari";
+
+                if (currentPlayerData.role === "Werewolf") {
+                    document.getElementById("action-werwolf").classList.remove("hidden");
+                    waitMsg.classList.add("hidden");
+                } else if (currentPlayerData.role === "Guardian") {
+                    document.getElementById("action-guardian").classList.remove("hidden");
+                    waitMsg.classList.add("hidden");
+                } else {
+                    waitMsg.innerText = "Malam hari... Tetap tenang.";
+                }
+            } else if (currentGameState === "tag") {
+                phaseIndicator.classList.add("phase-day");
+                phaseName.innerText = "☀️ Siang Hari - DISKUSI & VOTE";
+                waitMsg.classList.add("hidden");
+                document.getElementById("action-day-vote").classList.remove("hidden");
+            }
+        }
+    }
+}
+
+function triggerWin(winner, subMsg) {
+    update(ref(db), { 
+        gameState: "ended",
+        winData: { winner: winner, subMsg: subMsg }
+    });
+}
+
+function checkWinConditions() {
+    const players = Object.values(allPlayers);
+    const alivePlayers = players.filter(p => !p.isDead);
+    
+    const aliveWerewolves = alivePlayers.filter(p => p.role === "Werewolf");
+    const aliveVillagers = alivePlayers.filter(p => p.role !== "Werewolf");
+
+    if (aliveWerewolves.length === 0) {
+        triggerWin("WARGA DESA MENANG! 🧑‍🌾", "Semua Werewolf berhasil disingkirkan.");
+    } else if (aliveWerewolves.length >= aliveVillagers.length) {
+        triggerWin("WEREWOLF MENANG! 🐺", "Jumlah Werewolf sudah setara dengan penduduk.");
+    }
+}
+
+// Pantau Data Pemain
+onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
+    currentPlayerData = snapshot.val();
+    renderPlayerUI();
+});
+
+// Pantau Seluruh Pemain (Untuk Dropdown & Lobi)
+onValue(ref(db, "players"), (snapshot) => {
+    allPlayers = snapshot.val() || {};
+    const playerIds = Object.keys(allPlayers);
+    
+    if (isMC) {
+        document.getElementById("player-count-badge").innerText = playerIds.length;
+        const mcList = document.getElementById("mc-players-list");
+        mcList.innerHTML = "";
+        playerIds.forEach((id) => {
+            const p = allPlayers[id];
+            mcList.innerHTML += `<li>${p.name} [${rollenUebersetzung[p.role] || p.role}] ${p.isDead ? '💀 (Mati)' : '💚 (Hidup)'}</li>`;
+        });
+    }
+
+    const wSelect = document.getElementById("wolf-target-select");
+    const gSelect = document.getElementById("guardian-target-select");
+    const dSelect = document.getElementById("day-vote-select");
+
+    // FIX: Hanya cek 3 dropdown ini karena dropdown mc-execute sudah dihapus
+    if (wSelect && gSelect && dSelect) {
+        wSelect.innerHTML = ""; gSelect.innerHTML = ""; dSelect.innerHTML = "";
+        
+        Object.entries(allPlayers).forEach(([id, p]) => {
+            if (!p.isDead) {
+                const opt = `<option value="${id}">${p.name}</option>`;
+                // Malam: Werewolf dan Guardian tidak bisa menargetkan diri sendiri
+                if (id !== currentPlayerId) {
+                    wSelect.innerHTML += opt;
+                    gSelect.innerHTML += opt;
+                }
+                // Siang: Bisa vote siapa saja termasuk diri sendiri
+                dSelect.innerHTML += opt;
+            }
+        });
+    }
+});
+
+// Pantau State Game & Kondisi Menang
+onValue(ref(db, "gameState"), (snap) => {
+    currentGameState = snap.val() || "lobby";
+    
+    if (currentGameState !== "ended") {
+        document.getElementById("win-screen").classList.add("hidden");
+    }
+
+    if (currentGameState === "ended") {
+        onValue(ref(db, "winData"), (snapData) => {
+            const data = snapData.val();
+            if (data) {
+                document.getElementById("win-screen").classList.remove("hidden");
+                document.getElementById("win-message").innerText = data.winner;
+                document.getElementById("win-submessage").innerText = data.subMsg;
+                
+                if (isMC) {
+                    document.getElementById("mc-win-controls").classList.remove("hidden");
+                    document.getElementById("player-win-wait").classList.add("hidden");
+                } else {
+                    document.getElementById("mc-win-controls").classList.add("hidden");
+                    document.getElementById("player-win-wait").classList.remove("hidden");
+                }
+            }
+        }, { onlyOnce: true });
+        return; 
+    }
+
+    if (isMC) {
+        document.getElementById("mc-lobby-panel").classList.toggle("hidden", currentGameState !== "lobby");
+        document.getElementById("mc-controls-panel").classList.toggle("hidden", currentGameState === "lobby");
+        document.getElementById("mc-actions-monitor").classList.toggle("hidden", currentGameState !== "nacht");
+        document.getElementById("mc-day-monitor").classList.toggle("hidden", currentGameState !== "tag");
+    } else {
+        renderPlayerUI(); 
+    }
+});
+
+// Pantau Aksi Malam
+onValue(ref(db, "nightActions"), (snap) => {
+    currentNightActions = snap.val() || {};
+    if (isMC) {
+        const wId = currentNightActions.wolfTarget;
+        const gId = currentNightActions.guardianTarget;
+        document.getElementById("mc-wolf-target").innerText = wId && allPlayers[wId] ? allPlayers[wId].name : "-";
+        document.getElementById("mc-guardian-target").innerText = gId && allPlayers[gId] ? allPlayers[gId].name : "-";
+    }
+});
+
+// Rekap Hasil Voting Siang
+onValue(ref(db, "votes"), (snap) => {
+    currentDayVotes = snap.val() || {};
+    if (isMC) {
+        const tally = {};
+        Object.entries(currentDayVotes).forEach(([voterId, targetId]) => {
+            if (!tally[targetId]) tally[targetId] = [];
+            tally[targetId].push(allPlayers[voterId]?.name || "Unknown");
+        });
+        
+        const mcVoteList = document.getElementById("mc-vote-results");
+        mcVoteList.innerHTML = "";
+        
+        if (Object.keys(tally).length === 0) {
+            mcVoteList.innerHTML = "<li>Belum ada vote yang masuk.</li>";
+        } else {
+            Object.entries(tally).forEach(([targetId, voters]) => {
+                const targetName = allPlayers[targetId]?.name || "Unknown";
+                mcVoteList.innerHTML += `<li><strong style="color:#ff3b30">${targetName}</strong> mendapat <strong>${voters.length} suara</strong> (dari: ${voters.join(", ")})</li>`;
+            });
+        }
+    }
+});
+
+// Deklarasi Seri Global
+onValue(ref(db, "voteAlert"), (snap) => {
+    const alertTrigger = snap.val();
+    if (alertTrigger) {
+        alert("⚖️ VOTE SERI! ⚖️\nTidak ada eksekusi. Silakan diskusikan kembali dan VOTE ULANG!!");
+    }
+});
+
+// ==============================
+// KUMPULAN EVENT LISTENER KLIK
+// ==============================
+
+document.getElementById("btn-register-player").addEventListener("click", () => {
+    const nameInput = document.getElementById("player-name-input").value.trim();
+    if (!nameInput) return alert("Masukkan nama kamu!");
+    const currentPlayersCount = Object.keys(allPlayers).length;
+    if (currentPlayersCount >= 8 && !allPlayers[currentPlayerId]) return alert("Maaf, Lobi sudah penuh! (Maks. 8).");
+    set(ref(db, `players/${currentPlayerId}`), { name: nameInput, role: "Belum ada", isDead: false });
+});
+
+document.getElementById("btn-reset-players").addEventListener("click", () => {
+    if(confirm("HAPUS SEMUA PEMAIN dari lobi?")) {
+        set(ref(db, "players"), null);
+        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null });
+    }
+});
+
+document.getElementById("btn-start-game").addEventListener("click", () => {
+    const ids = Object.keys(allPlayers);
+    const count = ids.length;
+    if (count < 4 || count > 8) return alert(`Jumlah pemain harus 4-8 orang! (Saat ini: ${count})`);
+    
+    let rolesPool = [];
+    let wwCount = count < 5 ? 1 : 2; 
+    for (let i = 0; i < wwCount; i++) rolesPool.push("Werewolf");
+    rolesPool.push("Seer"); rolesPool.push("Guardian");
+    if (count >= 5) rolesPool.push("Witch");
+    while (rolesPool.length < count) rolesPool.push("Villager");
+    
+    rolesPool.sort(() => Math.random() - 0.5); 
+    
+    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, winData: null, voteAlert: null };
+    ids.forEach((id, i) => { updates[`players/${id}/role`] = rolesPool[i]; updates[`players/${id}/isDead`] = false; });
+    update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
+});
+
+document.getElementById("btn-wolf-kill").addEventListener("click", () => {
+    update(ref(db, "nightActions"), { wolfTarget: document.getElementById("wolf-target-select").value });
+});
+
+document.getElementById("btn-guardian-protect").addEventListener("click", () => {
+    update(ref(db, "nightActions"), { guardianTarget: document.getElementById("guardian-target-select").value });
+});
+
+document.getElementById("btn-submit-vote").addEventListener("click", () => {
+    const target = document.getElementById("day-vote-select").value;
+    set(ref(db, `votes/${currentPlayerId}`), target).then(() => {
+        const msg = document.getElementById("vote-status-msg");
+        msg.classList.remove("hidden");
+        setTimeout(() => msg.classList.add("hidden"), 3000);
+    });
+});
+
+// MC: Kalkulasi Hasil Malam
+document.getElementById("btn-resolve-night").addEventListener("click", () => {
+    const wTarget = currentNightActions.wolfTarget;
+    const gTarget = currentNightActions.guardianTarget;
+    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert
