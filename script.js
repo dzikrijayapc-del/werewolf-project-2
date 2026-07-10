@@ -158,20 +158,21 @@ onValue(ref(db, "players"), (snapshot) => {
     const wSelect = document.getElementById("wolf-target-select");
     const gSelect = document.getElementById("guardian-target-select");
     const dSelect = document.getElementById("day-vote-select");
-    const mcExecSelect = document.getElementById("mc-execute-select");
 
-    if (wSelect && gSelect && dSelect && mcExecSelect) {
-        wSelect.innerHTML = ""; gSelect.innerHTML = ""; dSelect.innerHTML = ""; mcExecSelect.innerHTML = "";
+    // FIX: Hanya cek 3 dropdown ini karena dropdown mc-execute sudah dihapus
+    if (wSelect && gSelect && dSelect) {
+        wSelect.innerHTML = ""; gSelect.innerHTML = ""; dSelect.innerHTML = "";
         
         Object.entries(allPlayers).forEach(([id, p]) => {
             if (!p.isDead) {
                 const opt = `<option value="${id}">${p.name}</option>`;
+                // Malam: Werewolf dan Guardian tidak bisa menargetkan diri sendiri
                 if (id !== currentPlayerId) {
                     wSelect.innerHTML += opt;
                     gSelect.innerHTML += opt;
                 }
+                // Siang: Bisa vote siapa saja termasuk diri sendiri
                 dSelect.innerHTML += opt;
-                mcExecSelect.innerHTML += opt;
             }
         });
     }
@@ -181,7 +182,6 @@ onValue(ref(db, "players"), (snapshot) => {
 onValue(ref(db, "gameState"), (snap) => {
     currentGameState = snap.val() || "lobby";
     
-    // Sembunyikan layar menang secara default jika game state berubah
     if (currentGameState !== "ended") {
         document.getElementById("win-screen").classList.add("hidden");
     }
@@ -194,7 +194,6 @@ onValue(ref(db, "gameState"), (snap) => {
                 document.getElementById("win-message").innerText = data.winner;
                 document.getElementById("win-submessage").innerText = data.subMsg;
                 
-                // Atur tombol menang berdasarkan peran (MC vs Player)
                 if (isMC) {
                     document.getElementById("mc-win-controls").classList.remove("hidden");
                     document.getElementById("player-win-wait").classList.add("hidden");
@@ -252,6 +251,14 @@ onValue(ref(db, "votes"), (snap) => {
     }
 });
 
+// Deklarasi Seri Global
+onValue(ref(db, "voteAlert"), (snap) => {
+    const alertTrigger = snap.val();
+    if (alertTrigger) {
+        alert("⚖️ VOTE SERI! ⚖️\nTidak ada eksekusi. Silakan diskusikan kembali dan VOTE ULANG!!");
+    }
+});
+
 // ==============================
 // KUMPULAN EVENT LISTENER KLIK
 // ==============================
@@ -267,7 +274,7 @@ document.getElementById("btn-register-player").addEventListener("click", () => {
 document.getElementById("btn-reset-players").addEventListener("click", () => {
     if(confirm("HAPUS SEMUA PEMAIN dari lobi?")) {
         set(ref(db, "players"), null);
-        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null });
+        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null });
     }
 });
 
@@ -285,7 +292,7 @@ document.getElementById("btn-start-game").addEventListener("click", () => {
     
     rolesPool.sort(() => Math.random() - 0.5); 
     
-    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, winData: null };
+    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, winData: null, voteAlert: null };
     ids.forEach((id, i) => { updates[`players/${id}/role`] = rolesPool[i]; updates[`players/${id}/isDead`] = false; });
     update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
@@ -307,11 +314,11 @@ document.getElementById("btn-submit-vote").addEventListener("click", () => {
     });
 });
 
-// MC: Eksekusi Hasil Malam (TIDAK ADA DUPLIKASI LAGI)
+// MC: Kalkulasi Hasil Malam
 document.getElementById("btn-resolve-night").addEventListener("click", () => {
     const wTarget = currentNightActions.wolfTarget;
     const gTarget = currentNightActions.guardianTarget;
-    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null };
+    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null };
 
     if (wTarget && wTarget !== gTarget) {
         updates[`players/${wTarget}/isDead`] = true;
@@ -325,11 +332,7 @@ document.getElementById("btn-resolve-night").addEventListener("click", () => {
     });
 });
 
-// ==========================================
-// SISTEM OTOMATISASI VOTING SIANG & SERI
-// ==========================================
-
-// 1. Logika Tombol Bacakan Vote (MC)
+// MC: Eksekusi Hasil Voting Siang (Otomatis)
 document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     const votes = Object.values(currentDayVotes);
     
@@ -337,7 +340,6 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
         return alert("Belum ada pemain yang memberikan suara!");
     }
 
-    // Hitung kemunculan tiap vote
     const tally = {};
     votes.forEach(targetId => {
         tally[targetId] = (tally[targetId] || 0) + 1;
@@ -346,19 +348,16 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     let maxVotes = 0;
     let topTargets = [];
 
-    // Cari tahu siapa yang mendapat suara terbanyak
     Object.entries(tally).forEach(([targetId, count]) => {
         if (count > maxVotes) {
             maxVotes = count;
-            topTargets = [targetId]; // Reset daftar jika ada skor baru tertinggi
+            topTargets = [targetId]; 
         } else if (count === maxVotes) {
-            topTargets.push(targetId); // Tambahkan ke daftar jika skor seri
+            topTargets.push(targetId);
         }
     });
 
-    // Cek Kondisi: Apakah ada 1 pemenang absolut, atau seri?
     if (topTargets.length === 1) {
-        // ADA PEMENANG VOTE (Hanya 1 orang dengan suara tertinggi)
         const targetId = topTargets[0];
         const targetName = allPlayers[targetId].name;
         
@@ -366,10 +365,10 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
 
         const updates = {
             [`players/${targetId}/isDead`]: true,
-            gameState: "nacht", // Otomatis balik ke malam
+            gameState: "nacht", 
             nightActions: { wolfTarget: "", guardianTarget: "" },
             votes: null,
-            voteAlert: null // Bersihkan notifikasi seri sebelumnya
+            voteAlert: null 
         };
         
         update(ref(db), updates).then(() => {
@@ -377,27 +376,16 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
         });
 
     } else {
-        // VOTE SERI (Lebih dari 1 orang memiliki suara tertinggi yang sama)
-        // Kirim "sinyal" alert ke database agar semua layar pemain memunculkan notifikasi
         update(ref(db), {
-            votes: null, // Reset vote agar mereka bisa klik vote lagi
-            voteAlert: Date.now() // Gunakan timestamp sebagai sinyal trigger unik
+            votes: null, 
+            voteAlert: Date.now() 
         });
-    }
-});
-
-// 2. Global Listener untuk Deklarasi Seri (Memicu pop-up di layar SEMUA ORANG)
-onValue(ref(db, "voteAlert"), (snap) => {
-    const alertTrigger = snap.val();
-    if (alertTrigger) {
-        // Deklarasi akan muncul di layar semua player dan MC secara bersamaan
-        alert("⚖️ VOTE SERI! ⚖️\nTidak ada eksekusi. Silakan diskusikan kembali dan VOTE ULANG!!");
     }
 });
 
 // KONTROL RESET SAAT MENANG KHUSUS MC
 document.getElementById("btn-play-again")?.addEventListener("click", () => {
-    const updates = { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null };
+    const updates = { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null };
     Object.keys(allPlayers).forEach(id => {
         updates[`players/${id}/role`] = "Belum ada";
         updates[`players/${id}/isDead`] = false;
@@ -408,11 +396,11 @@ document.getElementById("btn-play-again")?.addEventListener("click", () => {
 document.getElementById("btn-restart-all")?.addEventListener("click", () => {
     if(confirm("Yakin ingin mereset semua pemain? Mereka harus registrasi nama ulang.")) {
         set(ref(db, "players"), null);
-        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null });
+        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null });
     }
 });
 
 // Kendali Manual MC
-document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null }));
-document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht", votes: null }));
-document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null }));
+document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null, voteAlert: null }));
+document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht", votes: null, voteAlert: null }));
+document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null, voteAlert: null }));
