@@ -174,12 +174,17 @@
         <p>Kamu sudah tereliminasi dan tidak bisa berpartisipasi lagi.</p>
     </div>
 
-    <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95); color: #34c759;">
+  <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95); color: #34c759;">
         <h1 id="win-message" style="font-size: 3rem;">-</h1>
         <p id="win-submessage" style="font-size: 1.5rem; color: #fff;"></p>
-        <button id="btn-restart-game" class="action-btn" style="width: 200px; margin-top: 20px; background-color: #ff9500;">Main Lagi</button>
+        
+        <div id="mc-win-controls" class="hidden" style="margin-top: 30px; display: flex; gap: 15px; flex-direction: column; width: 80%; max-width: 300px;">
+            <button id="btn-play-again" class="action-btn" style="background-color: #34c759;">Main Lagi (Nama Terdaftar) 🔄</button>
+            <button id="btn-restart-all" class="action-btn" style="background-color: #ff3b30;">Ulangi dari Awal (Reset Lobi) 🗑️</button>
+        </div>
+        
+        <p id="player-win-wait" class="hidden" style="color: #a0a0ff; margin-top: 20px;">Menunggu MC untuk memulai permainan baru...</p>
     </div>
-
     <script type="module" src="script.js"></script>
 </body>
 </html>
