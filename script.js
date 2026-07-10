@@ -118,7 +118,16 @@ function renderPlayerUI() {
     }
 }
 
-// --- FUNGSI DETEKSI KEMENANGAN ---
+// --- TAMBAHKAN FUNGSI INI DI SCRIPT.JS ---
+// Fungsi untuk memicu kemenangan ke semua orang via Firebase
+function triggerWin(winner, subMsg) {
+    update(ref(db), { 
+        gameState: "ended",
+        winData: { winner: winner, subMsg: subMsg } // Simpan data pemenang di DB
+    });
+}
+
+// --- UPDATE FUNGSI checkWinConditions ---
 function checkWinConditions() {
     const players = Object.values(allPlayers);
     const alivePlayers = players.filter(p => !p.isDead);
@@ -126,26 +135,10 @@ function checkWinConditions() {
     const aliveWerewolves = alivePlayers.filter(p => p.role === "Werewolf");
     const aliveVillagers = alivePlayers.filter(p => p.role !== "Werewolf");
 
-    let winner = null;
-    let subMsg = "";
-
-    // KONDISI 1: Manusia menang (Semua Werewolf mati)
     if (aliveWerewolves.length === 0) {
-        winner = "WARGA DESA MENANG! 🧑‍🌾";
-        subMsg = "Semua Werewolf berhasil dieksekusi.";
-    } 
-    // KONDISI 2: Werewolf menang (Jumlah WW >= Jumlah Villager)
-    else if (aliveWerewolves.length >= aliveVillagers.length) {
-        winner = "WEREWOLF MENANG! 🐺";
-        subMsg = "Werewolf telah menguasai desa.";
-    }
-
-    if (winner) {
-        update(ref(db), { gameState: "ended" });
-        // Tampilkan ke semua pemain
-        document.getElementById("win-screen").classList.remove("hidden");
-        document.getElementById("win-message").innerText = winner;
-        document.getElementById("win-submessage").innerText = subMsg;
+        triggerWin("WARGA DESA MENANG! 🧑‍🌾", "Semua Werewolf berhasil disingkirkan.");
+    } else if (aliveWerewolves.length >= aliveVillagers.length) {
+        triggerWin("WEREWOLF MENANG! 🐺", "Jumlah Werewolf sudah setara dengan penduduk.");
     }
 }
 
