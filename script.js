@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, onValue, set, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxwxDkLTyVpXANDJPIpOC-5YHLtoDoqTs",
@@ -12,18 +12,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// --- DETEKSI MC ---
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('role') === 'mc') {
+    document.getElementById("mc-controls").classList.remove("hidden");
+}
+
 // 1. Pendaftaran Pemain
 window.registerPlayer = function() {
     const name = document.getElementById("player-name").value.trim();
     if (!name) return alert("Masukkan nama terlebih dahulu!");
     
-    // ID unik berdasarkan waktu
     const playerId = "player_" + Date.now();
     set(ref(db, 'players/' + playerId), {
         name: name,
         joinedAt: Date.now()
     }).then(() => {
-        alert("Berhasil bergabung, " + name + "!");
+        alert("Berhasil bergabung!");
         document.getElementById("player-panel").classList.add("hidden");
     });
 };
@@ -43,14 +48,17 @@ onValue(ref(db, "players"), (snapshot) => {
     }
 });
 
-// 3. Reset Game
+// 3. FUNGSI MC: Reset & Mulai
 window.resetGame = function() {
-    if(confirm("Yakin ingin mereset permainan? Semua pemain akan dihapus.")) {
-        remove(ref(db, 'players')).then(() => {
-            alert("Game direset. Halaman akan dimuat ulang.");
-            location.reload();
-        });
+    if(confirm("Hapus semua pemain dan mulai dari awal?")) {
+        remove(ref(db, 'players')).then(() => location.reload());
     }
+};
+
+window.startGame = function() {
+    update(ref(db), { gameState: "nacht" }).then(() => {
+        alert("Game dimulai! Status berubah ke Malam (Nacht)");
+    });
 };
 
 // Loading Screen Logic
