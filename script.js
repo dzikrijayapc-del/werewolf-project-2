@@ -175,7 +175,28 @@ document.getElementById("btn-mc-execute").addEventListener("click", () => {
         checkWinConditions(); // Cek apakah setelah eksekusi permainan berakhir
     });
 });
+onValue(ref(db, "gameState"), (snap) => {
+    currentGameState = snap.val() || "lobby";
+    
+    // TAMBAHKAN INI: Listener untuk kondisi Menang
+    if (currentGameState === "ended") {
+        onValue(ref(db, "winData"), (snap) => {
+            const data = snap.val();
+            if (data) {
+                document.getElementById("win-screen").classList.remove("hidden");
+                document.getElementById("win-message").innerText = data.winner;
+                document.getElementById("win-submessage").innerText = data.subMsg;
+            }
+        });
+        return; // Hentikan proses lain
+    }
 
+    if (isMC) {
+        // ... (kode MC yang lama tetap di sini)
+    } else {
+        renderPlayerUI();
+    }
+});
 onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
     currentPlayerData = snapshot.val();
     renderPlayerUI();
