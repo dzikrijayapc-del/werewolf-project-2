@@ -12,31 +12,29 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Selektor DOM
-const loadingScreen = document.getElementById("loading-screen");
-const playerScreen = document.getElementById("player-screen");
-const mcScreen = document.getElementById("mc-screen");
-const deadScreen = document.getElementById("dead-screen");
+// Ambil ID Akun dari LocalStorage atau default ke player_1
+let currentPlayerId = localStorage.getItem("myPlayerId");
+if (!currentPlayerId || currentPlayerId === "mc") {
+    currentPlayerId = "player_1";
+    localStorage.setItem("myPlayerId", "player_1");
+}
+
+const isMC = new URLSearchParams(window.location.search).get('role') === 'mc';
 const devRoleSelect = document.getElementById("dev-role-select");
 
-// State Global
-let currentPlayerId = localStorage.getItem("myPlayerId") || "player_" + Date.now();
-let isMcView = new URLSearchParams(window.location.search).get('role') === 'mc';
-let currentGameState = "lobby";
-let allPlayers = {};
-let currentNightActions = {};
+// Sinkronisasi Selektor Mode Dev dengan URL/Status Akun Saat Ini
+if (isMC) {
+    devRoleSelect.value = "mc";
+    document.getElementById("loading-screen").classList.add("hidden");
+    document.getElementById("mc-screen").removeClassName = ""; 
+    document.getElementById("mc-screen").classList.remove("hidden");
+} else {
+    devRoleSelect.value = currentPlayerId;
+    document.getElementById("loading-screen").classList.add("hidden");
+    document.getElementById("player-screen").classList.remove("hidden");
+}
 
-// Terjemahan Peran
-const rollenUebersetzung = {
-    "Werewolf": "Werewolf 🐺",
-    "Villager": "Warga Desa 🧑‍🌾",
-    "Guardian": "Pelindung 🛡️",
-    "Seer": "Penerawang 🔮",
-    "Witch": "Penyihir 🧪",
-    "Belum ada": "Menunggu pembagian peran..."
-};
-
-// DEV MODE LOGIC (Simulasi pindah layar)
+// Event ganti akun di Mode Developer
 devRoleSelect.addEventListener("change", (e) => {
     if (e.target.value === "mc") {
         window.location.href = "?role=mc";
@@ -46,26 +44,29 @@ devRoleSelect.addEventListener("change", (e) => {
     }
 });
 
-// INITIAL SETUP UI
-if (isMcView) {
-    devRoleSelect.value = "mc";
-    loadingScreen.classList.add("hidden");
-    mcScreen.classList.remove("hidden");
-} else {
-    devRoleSelect.value = "player_1"; // Mock data
-    localStorage.setItem("myPlayerId", currentPlayerId);
-    loadingScreen.classList.add("hidden");
-    playerScreen.classList.remove("hidden");
-}
+// Kamus Terjemahan Peran
+const rollenUebersetzung = {
+    "Werewolf": "Werewolf 🐺",
+    "Villager": "Warga Desa 🧑‍🌾",
+    "Guardian": "Pelindung (Guardian) 🛡️",
+    "Seer": "Penerawang (Seer) 🔮",
+    "Witch": "Penyihir (Witch) 🧪",
+    "Belum ada": "Menunggu pembagian peran..."
+};
 
-// LOGIKA PEMAIN (LOBBY & GAMEPLAY)
+let currentGameState = "lobby";
+let allPlayers = {};
+let currentNightActions = {};
+
+// SINKRONISASI TAMPILAN PEMAIN INDIVIDUAL
 onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
-    if (isMcView) return; 
+    if (isMC) return;
     const data = snapshot.val();
     
     document.getElementById("lobby-registration-panel").classList.add("hidden");
     document.getElementById("lobby-waiting-panel").classList.add("hidden");
     document.getElementById("gameplay-role-panel").classList.add("hidden");
+    document.getElementById("dead-screen").classList.add("hidden");
 
     if (!data || !data.name) {
         document.getElementById("lobby-registration-panel").classList.remove("hidden");
@@ -74,58 +75,71 @@ onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
         document.getElementById("waiting-player-name").innerText = data.name;
     } else {
         if (data.isDead) {
-            deadScreen.classList.remove("hidden");
-            playerScreen.classList.add("hidden");
+            document.getElementById("dead-screen").classList.remove("hidden");
         } else {
-            deadScreen.classList.add("hidden");
             document.getElementById("gameplay-role-panel").classList.remove("hidden");
             document.getElementById("player-role").innerText = rollenUebersetzung[data.role] || data.role;
             
-            // Logika Visibilitas Aksi Malam
+            // Atur Visibilitas Panel Aksi Malam Hari
             document.getElementById("action-werwolf").classList.add("hidden");
             document.getElementById("action-guardian").classList.add("hidden");
             const waitMsg = document.getElementById("action-wait-message");
             
             if (currentGameState === "nacht") {
-                if (data.role === "Werewolf") document.getElementById("action-werwolf").classList.remove("hidden");
-                else if (data.role === "Guardian") document.getElementById("action-guardian").classList.remove("hidden");
-                else waitMsg.innerText = "Malam hari tiba. Tunggu peran lain bertindak...";
+                waitMsg.classList.remove("hidden");
+                if (data.role === "Werewolf") {
+                    document.getElementById("action-werwolf").classList.remove("hidden");
+                    waitMsg.classList.add("hidden");
+                } else if (data.role === "Guardian") {
+                    document.getElementById("action-guardian").classList.remove("hidden");
+                    waitMsg.classList.add("hidden");
+                } else {
+                    waitMsg.innerText = "Malam hari telah tiba. Harap tunggu peran lain bergerak...";
+                }
             } else {
-                waitMsg.innerText = "Siang hari! Diskusikan siapa yang mencurigakan.";
+                waitMsg.classList.remove("hidden");
+                waitMsg.innerText = "Siang hari! Silakan berdiskusi dan pilih siapa yang digantung.";
             }
         }
     }
 });
 
-// LOGIKA DAFTAR
+// EVENT REGISTRASI PEMAIN
 document.getElementById("btn-register-player").addEventListener("click", () => {
-    const name = document.getElementById("player-name-input").value;
-    if (name) {
-        set(ref(db, `players/${currentPlayerId}`), { name: name, role: "Belum ada", isDead: false });
-    }
+    const nameInput = document.getElementById("player-name-input").value.trim();
+    if (!nameInput) return alert("Masukkan nama kamu!");
+    
+    set(ref(db, `players/${currentPlayerId}`), {
+        name: nameInput,
+        role: "Belum ada",
+        isDead: false
+    }).then(() => alert("Berhasil mendaftar ke lobi!"));
 });
 
-// LOGIKA DAFTAR PEMAIN (Dropdown & MC List)
+// MONITOR DATA SEMUA PEMAIN (UNTUK MC & DROPDOWN AKSI)
 onValue(ref(db, "players"), (snapshot) => {
     allPlayers = snapshot.val() || {};
+    const playerIds = Object.keys(allPlayers);
     
-    // Update List MC
-    if (isMcView) {
+    // Update daftar di layar MC
+    if (isMC) {
+        document.getElementById("player-count-badge").innerText = playerIds.length;
         const mcList = document.getElementById("mc-players-list");
         mcList.innerHTML = "";
-        Object.entries(allPlayers).forEach(([id, p]) => {
-            mcList.innerHTML += `<li>${p.name} - ${rollenUebersetzung[p.role]} ${p.isDead ? '(💀)' : ''}</li>`;
+        playerIds.forEach((id) => {
+            const p = allPlayers[id];
+            mcList.innerHTML += `<li><strong>${id.replace('_', ' ')}:</strong> ${p.name} [${rollenUebersetzung[p.role] || p.role}] ${p.isDead ? '💀 (Mati)' : '💚 (Hidup)'}</li>`;
         });
     }
 
-    // Update Dropdown Target (Hanya pemain hidup)
+    // Update Dropdown Pilihan Target Malam Hari (Hanya Pemain Hidup)
     const wSelect = document.getElementById("wolf-target-select");
     const gSelect = document.getElementById("guardian-target-select");
     if (wSelect && gSelect) {
         wSelect.innerHTML = ""; gSelect.innerHTML = "";
         Object.entries(allPlayers).forEach(([id, p]) => {
-            if (!p.isDead && id !== currentPlayerId) {
-                const opt = `<option value="${id}">${p.name}</option>`;
+            if (!p.isDead) {
+                const opt = `<option value="${id}">${p.name} (${id.replace('_', ' ')})</option>`;
                 wSelect.innerHTML += opt;
                 gSelect.innerHTML += opt;
             }
@@ -133,63 +147,91 @@ onValue(ref(db, "players"), (snapshot) => {
     }
 });
 
-// LOGIKA MC: Game State & Evaluasi Malam
+// MONITOR UTAMA STATUS GAME (GAME STATE)
 onValue(ref(db, "gameState"), (snap) => {
     currentGameState = snap.val() || "lobby";
-    if (isMcView) {
+    if (isMC) {
         document.getElementById("mc-lobby-panel").classList.toggle("hidden", currentGameState !== "lobby");
         document.getElementById("mc-controls-panel").classList.toggle("hidden", currentGameState === "lobby");
         document.getElementById("mc-actions-monitor").classList.toggle("hidden", currentGameState === "lobby");
     }
 });
 
+// MONITOR AKSI MALAM HARI OLEH MC
 onValue(ref(db, "nightActions"), (snap) => {
     currentNightActions = snap.val() || {};
-    if (isMcView) {
+    if (isMC) {
         const wId = currentNightActions.wolfTarget;
         const gId = currentNightActions.guardianTarget;
-        document.getElementById("mc-wolf-target").innerText = wId && allPlayers[wId] ? allPlayers[wId].name : "-";
-        document.getElementById("mc-guardian-target").innerText = gId && allPlayers[gId] ? allPlayers[gId].name : "-";
+        document.getElementById("mc-wolf-target").innerText = wId && allPlayers[wId] ? `${allPlayers[wId].name} (${wId.replace('_', ' ')})` : "-";
+        document.getElementById("mc-guardian-target").innerText = gId && allPlayers[gId] ? `${allPlayers[gId].name} (${gId.replace('_', ' ')})` : "-";
     }
 });
 
+// TOMBOL START GAME: VALIDASI TEPAT 8 PEMAIN & ACAK PERAN
 document.getElementById("btn-start-game").addEventListener("click", () => {
     const ids = Object.keys(allPlayers);
-    const roles = ["Werewolf", "Werewolf", "Seer", "Guardian", "Witch", "Villager", "Villager", "Villager"];
-    roles.sort(() => Math.random() - 0.5);
     
-    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "" } };
-    ids.forEach((id, i) => { updates[`players/${id}/role`] = roles[i] || "Villager"; updates[`players/${id}/isDead`] = false; });
-    update(ref(db), updates);
+    // Kunci Validasi Tepat 8 Orang
+    if (ids.length !== 8) {
+        return alert(`Game tidak bisa dimulai! Jumlah pemain harus tepat 8 orang. (Saat ini baru ada: ${ids.length} pemain)`);
+    }
+
+    // Pola Peran Sesuai Permintaan Anda: 2 Werewolf, 1 Seer, 1 Guardian, 1 Witch, 3 Villager
+    const rolesPool = ["Werewolf", "Werewolf", "Seer", "Guardian", "Witch", "Villager", "Villager", "Villager"];
+    rolesPool.sort(() => Math.random() - 0.5); // Pengacakan acak rahasia
+    
+    const updates = { 
+        gameState: "nacht", 
+        nightActions: { wolfTarget: "", guardianTarget: "" } 
+    };
+
+    ids.forEach((id, i) => { 
+        updates[`players/${id}/role`] = rolesPool[i]; 
+        updates[`players/${id}/isDead`] = false; 
+    });
+
+    update(ref(db), updates).then(() => alert("Game Dimulai! Peran 8 pemain berhasil diacak secara otomatis."));
 });
 
-// Aksi Pemain Malam Hari
+// PROSES PENGIRIMAN AKSI MALAM PEMAIN
 document.getElementById("btn-wolf-kill").addEventListener("click", () => {
-    update(ref(db, "nightActions"), { wolfTarget: document.getElementById("wolf-target-select").value });
-    alert("Target mangsa terkirim!");
+    const target = document.getElementById("wolf-target-select").value;
+    update(ref(db, "nightActions"), { wolfTarget: target }).then(() => alert("Target mangsa dikirim ke MC!"));
 });
 
 document.getElementById("btn-guardian-protect").addEventListener("click", () => {
-    update(ref(db, "nightActions"), { guardianTarget: document.getElementById("guardian-target-select").value });
-    alert("Target lindungan terkirim!");
+    const target = document.getElementById("guardian-target-select").value;
+    update(ref(db, "nightActions"), { guardianTarget: target }).then(() => alert("Target perlindungan dikirim ke MC!"));
 });
 
-// Evaluasi Kalkulasi Malam
+// LOGIKA EVALUASI KALKULASI MALAM HARI OLEH MC
 document.getElementById("btn-resolve-night").addEventListener("click", () => {
     const wTarget = currentNightActions.wolfTarget;
     const gTarget = currentNightActions.guardianTarget;
-    const updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" } };
+    
+    const updates = { 
+        gameState: "tag", 
+        nightActions: { wolfTarget: "", guardianTarget: "" } 
+    };
 
     if (wTarget && wTarget !== gTarget) {
         updates[`players/${wTarget}/isDead`] = true;
-        alert(`Pemain mati malam ini!`);
+        alert(`Kalkulasi Selesai: Pemain di slot (${wTarget.replace('_', ' ')}) bernama "${allPlayers[wTarget].name}" MATI dimangsa Werewolf!`);
+    } else if (wTarget && wTarget === gTarget) {
+        alert("Kalkulasi Selesai: Selamat! Target yang diserang Werewolf berhasil dilindungi oleh Guardian. Tidak ada korban jiwa.");
     } else {
-        alert("Tidak ada yang mati malam ini!");
+        alert("Kalkulasi Selesai: Tidak ada data aksi pembunuhan malam ini.");
     }
+
     update(ref(db), updates);
 });
 
-// State Controls
-document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby" }));
+// PENGONTROL MANUAL FASE OLEH MC
+document.getElementById("btn-state-lobby").addEventListener("click", () => {
+    if(confirm("Reset seluruh game kembali ke Lobi awal?")) {
+        update(ref(db), { gameState: "lobby", nightActions: { wolfTarget: "", guardianTarget: "" } });
+    }
+});
 document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht" }));
 document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag" }));
