@@ -2,37 +2,131 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Werewolf Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Werewolf Project</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 20px; }
-        .card { background: #16213e; padding: 20px; border-radius: 15px; margin: 10px auto; max-width: 400px; border: 2px solid #0f3460; }
-        button { background: #e94560; color: white; border: none; padding: 10px; margin: 5px; border-radius: 5px; cursor: pointer; }
+        body {
+            background-color: #121212; color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif; text-align: center;
+            padding: 20px; margin: 0;
+        }
+        .container {
+            max-width: 500px; margin: 40px auto; background: #1e1e1e;
+            padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+            border: 1px solid #2a2a2a;
+        }
+        h1, h2 { color: #ff3b30; margin-bottom: 20px; }
         .hidden { display: none !important; }
-        ul { list-style: none; padding: 0; }
-        li { background: #0f3460; padding: 10px; margin: 5px; border-radius: 5px; }
+        
+        .dead-screen {
+            background-color: #000000; color: #ff3b30;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        .role-badge {
+            display: inline-block; background: #2c2c2e; padding: 12px 24px;
+            border-radius: 30px; font-size: 1.4em; font-weight: bold;
+            margin-top: 15px; border: 2px solid #ff3b30;
+            box-shadow: 0 0 15px rgba(255, 59, 48, 0.3);
+        }
+        input, select {
+            width: 100%; padding: 12px; margin-bottom: 15px; background: #2c2c2e;
+            color: #fff; border: 1px solid #444; border-radius: 8px; font-size: 1rem; text-align: center;
+            box-sizing: border-box;
+        }
+        .action-btn {
+            color: white; border: none; padding: 12px 15px; cursor: pointer;
+            width: 100%; border-radius: 8px; font-weight: bold; font-size: 1.1rem;
+        }
+        #btn-wolf-kill { background-color: #ff3b30; }
+        #btn-guardian-protect { background-color: #0a84ff; }
     </style>
 </head>
 <body>
-    <div id="player-panel">
-        <input type="text" id="player-name" placeholder="Nama Anda...">
-        <button onclick="registerPlayer()">Join Game</button>
-    </div>
 
-    <div id="game-ui" class="hidden">
-        <div class="card" id="my-role-display">Peran Anda: -</div>
-        <h3>Daftar Pemain:</h3>
-        <ul id="players-list"></ul>
-        
-        <div id="action-panel" class="hidden">
-            <h3>Aksi Malam:</h3>
-            <div id="target-buttons"></div>
+    <div class="container" id="main-container">
+        <!-- 🛠️ MODE DEVELOPER -->
+        <div style="background: #2c2c2e; padding: 12px; margin-bottom: 25px; border-radius: 8px; border: 1px dashed #ff3b30; text-align: left;">
+            <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer:</label>
+            <select id="dev-role-select" style="margin-top: 5px;">
+                <option value="player_1">Pemain 1</option>
+                <option value="player_2">Pemain 2</option>
+                <option value="mc">Moderator (MC)</option>
+            </select>
+        </div>
+
+        <!-- Layar Pemuatan -->
+        <div id="loading-screen">
+            <h2>Mohon tunggu...</h2>
+            <p>Menghubungkan ke server...</p>
+        </div>
+
+        <!-- Tampilan Pemain -->
+        <div id="player-screen" class="hidden">
+            <div id="lobby-registration-panel" class="hidden">
+                <h2>Selamat Datang!</h2>
+                <input type="text" id="player-name-input" placeholder="Ketik nama kamu di sini...">
+                <button id="btn-register-player" class="action-btn" style="background-color: #34c759;">Daftar Sekarang</button>
+            </div>
+
+            <div id="lobby-waiting-panel" class="hidden">
+                <h2>Lobi Permainan</h2>
+                <p>Halo <strong id="waiting-player-name" style="color: #ff3b30;">-</strong>,</p>
+                <p>Mohon tunggu sampai MC mengacak peran.</p>
+            </div>
+
+            <div id="gameplay-role-panel" class="hidden">
+                <h2>Peran Kamu</h2>
+                <div class="role-badge" id="player-role">Memuat...</div>
+                
+                <div id="player-action-area" style="margin-top: 40px;">
+                    <p id="action-wait-message">Tunggu fase malam untuk melakukan aksimu...</p>
+                    
+                    <div id="action-werwolf" class="hidden">
+                        <h3 style="color: #ff3b30;">Aksi Werewolf</h3>
+                        <select id="wolf-target-select"></select>
+                        <button id="btn-wolf-kill" class="action-btn">Mangsa</button>
+                    </div>
+
+                    <div id="action-guardian" class="hidden">
+                        <h3 style="color: #0a84ff;">Aksi Pelindung</h3>
+                        <select id="guardian-target-select"></select>
+                        <button id="btn-guardian-protect" class="action-btn">Lindungi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tampilan MC -->
+        <div id="mc-screen" class="hidden">
+            <h2>Moderator Game (MC)</h2>
+            <div id="mc-lobby-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px;">
+                <h3>Pemain Terdaftar:</h3>
+                <ul id="mc-players-list" style="text-align: left; color: #ff9500;"></ul>
+                <button id="btn-start-game" class="action-btn" style="background-color: #ff9500;">Acak Peran & Mulai 🃏</button>
+            </div>
+
+            <div id="mc-controls-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                <h3>Fase Permainan</h3>
+                <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px;">Lobi</button>
+                <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px;">Malam 🌙</button>
+                <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px;">Siang ☀️</button>
+            </div>
+            
+            <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
+                <h3>Aktivitas Malam Ini:</h3>
+                <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30;">-</span></p>
+                <p>🛡️ Target Pelindung: <span id="mc-guardian-target" style="color: #0a84ff;">-</span></p>
+                <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam</button>
+            </div>
         </div>
     </div>
 
-    <div id="mc-controls" class="hidden card">
-        <h3>Panel MC</h3>
-        <button onclick="startGame()">Mulai Game (Acak Peran)</button>
-        <button onclick="resetGame()" style="background:#555;">Reset</button>
+    <!-- Layar Kematian -->
+    <div id="dead-screen" class="dead-screen hidden">
+        <h1>KAMU SUDAH MATI</h1>
+        <p>Kamu sudah tereliminasi dan menjadi arwah gentayangan.</p>
     </div>
 
     <script type="module" src="script.js"></script>
