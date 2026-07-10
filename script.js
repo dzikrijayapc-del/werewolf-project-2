@@ -65,71 +65,23 @@ const emptyNightActions = {
     witchPoisonTarget: ""
 };
 
-function renderPlayerUI() {
-    if (isMC) return;
-    
-    document.getElementById("lobby-registration-panel").classList.add("hidden");
-    document.getElementById("lobby-waiting-panel").classList.add("hidden");
-    document.getElementById("gameplay-role-panel").classList.add("hidden");
-    document.getElementById("dead-screen").classList.add("hidden");
+// SISTEM AKSES OTOMATIS
+const isMC = new URLSearchParams(window.location.search).get('role') === 'mc';
 
-    if (!currentPlayerData || !currentPlayerData.name) {
-        document.getElementById("lobby-registration-panel").classList.remove("hidden");
-        return;
-    } 
-    
-    if (currentGameState === "lobby") {
-        document.getElementById("lobby-waiting-panel").classList.remove("hidden");
-        document.getElementById("waiting-player-name").innerText = currentPlayerData.name;
-    } else {
-        if (currentPlayerData.isDead) {
-            document.getElementById("dead-screen").classList.remove("hidden");
-        } else {
-            document.getElementById("gameplay-role-panel").classList.remove("hidden");
-            document.getElementById("player-role").innerText = rollenUebersetzung[currentPlayerData.role] || currentPlayerData.role;
-            
-            const phaseIndicator = document.getElementById("phase-indicator");
-            const phaseName = document.getElementById("phase-name");
-            phaseIndicator.classList.remove("hidden", "phase-night", "phase-day");
-            
-            document.getElementById("action-werwolf").classList.add("hidden");
-            document.getElementById("action-guardian").classList.add("hidden");
-            document.getElementById("action-seer").classList.add("hidden");
-            document.getElementById("action-witch").classList.add("hidden");
-            document.getElementById("action-day-vote").classList.add("hidden");
-            
-            const waitMsg = document.getElementById("action-wait-message");
-            waitMsg.classList.remove("hidden");
-
-            if (currentGameState === "nacht") {
-                phaseIndicator.classList.add("phase-night");
-                phaseName.innerText = "🌙 Malam Hari";
-
-                if (currentPlayerData.role === "Werewolf") {
-                    document.getElementById("action-werwolf").classList.remove("hidden");
-                    waitMsg.classList.add("hidden");
-                } else if (currentPlayerData.role === "Guardian") {
-                    document.getElementById("action-guardian").classList.remove("hidden");
-                    waitMsg.classList.add("hidden");
-                } else if (currentPlayerData.role === "Seer") {
-                    document.getElementById("action-seer").classList.remove("hidden");
-                    document.getElementById("seer-result").classList.add("hidden");
-                    waitMsg.classList.add("hidden");
-                } else if (currentPlayerData.role === "Witch") {
-                    document.getElementById("action-witch").classList.remove("hidden");
-                    document.getElementById("witch-status-msg").classList.add("hidden");
-                    waitMsg.classList.add("hidden");
-                } else {
-                    waitMsg.innerText = "Malam hari... Tetap tenang.";
-                }
-            } else if (currentGameState === "tag") {
-                phaseIndicator.classList.add("phase-day");
-                phaseName.innerText = "☀️ Siang Hari - DISKUSI & VOTE";
-                waitMsg.classList.add("hidden");
-                document.getElementById("action-day-vote").classList.remove("hidden");
-            }
-        }
-    }
+if (isMC) {
+    // LAYAR MC: Hanya tampilkan kontrol MC
+    document.getElementById("loading-screen").classList.add("hidden");
+    document.getElementById("mc-screen").classList.remove("hidden");
+    document.getElementById("mc-access-panel").classList.remove("hidden");
+    // Hapus total elemen pemain agar tidak bisa diakses
+    document.getElementById("player-screen").remove();
+} else {
+    // LAYAR PEMAIN: Hanya tampilkan pendaftaran
+    document.getElementById("loading-screen").classList.add("hidden");
+    document.getElementById("player-screen").classList.remove("hidden");
+    document.getElementById("player-access-panel").classList.remove("hidden");
+    // Hapus total elemen MC agar tidak bisa diakses
+    document.getElementById("mc-screen").remove();
 }
 
 function triggerWin(winner, subMsg) {
