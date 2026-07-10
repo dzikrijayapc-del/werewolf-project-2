@@ -15,7 +15,7 @@
             padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.8);
             border: 1px solid #2a2a2a;
         }
-        h1, h2 { color: #ff3b30; margin-bottom: 20px; }
+        h1, h2, h3 { margin-bottom: 20px; }
         .hidden { display: none !important; }
         
         .dead-screen {
@@ -74,22 +74,21 @@
             </select>
         </div>
 
-        <!-- Layar Pemuatan -->
         <div id="loading-screen">
-            <h2>Mohon tunggu...</h2>
+            <h2 style="color: #ff3b30;">Mohon tunggu...</h2>
             <p>Menghubungkan ke server...</p>
         </div>
 
         <!-- Tampilan Pemain -->
         <div id="player-screen" class="hidden">
             <div id="lobby-registration-panel" class="hidden">
-                <h2>Selamat Datang!</h2>
+                <h2 style="color: #ff3b30;">Selamat Datang!</h2>
                 <input type="text" id="player-name-input" placeholder="Ketik nama kamu di sini...">
                 <button id="btn-register-player" class="action-btn" style="background-color: #34c759;">Daftar Sekarang</button>
             </div>
 
             <div id="lobby-waiting-panel" class="hidden">
-                <h2>Lobi Permainan</h2>
+                <h2 style="color: #ff3b30;">Lobi Permainan</h2>
                 <p>Halo <strong id="waiting-player-name" style="color: #ff3b30;">-</strong>,</p>
                 <p>Kamu sudah terdaftar. Mohon tunggu sampai pemain lain berkumpul (Min. 4, Maks. 8) dan MC memulai game.</p>
             </div>
@@ -100,12 +99,13 @@
                     <span id="phase-name">Memuat Fase...</span>
                 </div>
 
-                <h2>Peran Kamu</h2>
+                <h2 style="color: #ff3b30;">Peran Kamu</h2>
                 <div class="role-badge" id="player-role">Memuat...</div>
                 
                 <div id="player-action-area" style="margin-top: 40px;">
-                    <p id="action-wait-message">Tunggu fase malam untuk melakukan aksimu...</p>
+                    <p id="action-wait-message">Tunggu instruksi selanjutnya...</p>
                     
+                    <!-- Aksi Malam (Hanya aktif saat Malam) -->
                     <div id="action-werwolf" class="hidden">
                         <h3 style="color: #ff3b30;">Aksi Werewolf 🐺</h3>
                         <p>Pilih pemain yang ingin kamu mangsa:</p>
@@ -119,13 +119,23 @@
                         <select id="guardian-target-select"></select>
                         <button id="btn-guardian-protect" class="action-btn">Lindungi</button>
                     </div>
+
+                    <!-- Aksi Siang (Aktif saat Siang) -->
+                    <div id="action-day-vote" class="hidden">
+                        <h3 style="color: #ffcc00;">Fase Voting Siang ☀️</h3>
+                        <p>Pilih siapa yang ingin kamu gantung (bisa pilih diri sendiri):</p>
+                        <select id="day-vote-select"></select>
+                        <button id="btn-submit-vote" class="action-btn" style="background-color: #ffcc00; color: black;">Kirim Vote</button>
+                        <p id="vote-status-msg" style="color: #34c759; margin-top: 10px;" class="hidden">Vote berhasil dikirim ke MC!</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Tampilan MC -->
         <div id="mc-screen" class="hidden">
-            <h2>Moderator Game (MC)</h2>
+            <h2 style="color: #ff3b30;">Moderator Game (MC)</h2>
+            
             <div id="mc-lobby-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px;">
                 <h3>Pemain Terdaftar (<span id="player-count-badge">0</span>/8):</h3>
                 <ul id="mc-players-list" style="text-align: left; color: #ff9500;"></ul>
@@ -140,11 +150,25 @@
                 <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Siang ☀️</button>
             </div>
             
+            <!-- Monitor MC Saat Malam -->
             <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
-                <h3>Aktivitas Malam Ini:</h3>
+                <h3 style="color: #a0a0ff;">Aktivitas Malam Ini:</h3>
                 <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
                 <p>🛡️ Target Pelindung: <span id="mc-guardian-target" style="color: #0a84ff; font-weight: bold;">-</span></p>
-                <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam</button>
+                <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam (Lanjut Siang)</button>
+            </div>
+
+            <!-- Monitor MC Saat Siang (Voting IRL) -->
+            <div id="mc-day-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
+                <h3 style="color: #ffcc00;">Log Hasil Voting (Siang):</h3>
+                <ul id="mc-vote-results" style="color: white;"></ul>
+                
+                <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
+                    <p style="color: #ff9500; font-weight: bold;">Eksekusi Pemain (Manual oleh MC):</p>
+                    <p style="font-size: 0.9em;">Bacakan hasilnya IRL, lalu pilih siapa yang digantung.</p>
+                    <select id="mc-execute-select"></select>
+                    <button id="btn-mc-execute" class="action-btn" style="background-color: #ff3b30;">Eksekusi & Lanjut Malam 🌙</button>
+                </div>
             </div>
         </div>
     </div>
@@ -152,7 +176,7 @@
     <!-- Layar Kematian -->
     <div id="dead-screen" class="dead-screen hidden">
         <h1>KAMU SUDAH MATI 💀</h1>
-        <p>Kamu sudah tereliminasi dan tidak bisa melakukan aksi di babak ini.</p>
+        <p>Kamu sudah tereliminasi dan tidak bisa berpartisipasi lagi.</p>
     </div>
 
     <script type="module" src="script.js"></script>
