@@ -12,14 +12,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// 1. BUAT ID OTOMATIS (Mencegah pemain memilih urutan manual & Race Condition)
-let currentPlayerId = localStorage.getItem("myPlayerId");
-if (!currentPlayerId || currentPlayerId === "mc") {
-    currentPlayerId = "player_" + Math.floor(Math.random() * 1000000);
-    localStorage.setItem("myPlayerId", currentPlayerId);
-}
+// 1. BUAT ID BERDASARKAN PILIHAN SLOT (Bukan Random Lagi)
+let currentPlayerId = localStorage.getItem("myPlayerId") || "player_1"; // Default masuk ke player_1
 
-// 2. SISTEM AKSES OTOMATIS TINGKAT TINGGI
+// 2. SISTEM AKSES OTOMATIS
 const isMC = new URLSearchParams(window.location.search).get('role') === 'mc';
 
 if (isMC) {
@@ -36,6 +32,16 @@ if (isMC) {
     document.getElementById("player-access-panel")?.classList.remove("hidden");
     document.getElementById("mc-screen")?.remove();
     document.getElementById("mc-access-panel")?.remove();
+    
+    // Hubungkan Dropdown Pilihan Slot dengan LocalStorage
+    const slotSelect = document.getElementById("player-slot-select");
+    if (slotSelect) {
+        slotSelect.value = currentPlayerId;
+        slotSelect.addEventListener("change", (e) => {
+            localStorage.setItem("myPlayerId", e.target.value);
+            window.location.reload(); // Muat ulang agar Firebase membaca ID slot yang baru
+        });
+    }
 }
 
 const rollenUebersetzung = {
@@ -156,7 +162,6 @@ onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
     renderPlayerUI();
 });
 
-// LOGIKA PEMBAGIAN NAMA DI DROPDOWN
 onValue(ref(db, "players"), (snapshot) => {
     allPlayers = snapshot.val() || {};
     const playerIds = Object.keys(allPlayers);
@@ -304,8 +309,7 @@ onValue(ref(db, "voteAlert"), (snap) => {
 });
 
 // ==============================
-// KUMPULAN EVENT LISTENER KLIK 
-// (Ditambah '?.' agar aman dari element yg dihapus)
+// KUMPULAN EVENT LISTENER KLIK
 // ==============================
 
 document.getElementById("btn-register-player")?.addEventListener("click", () => {
