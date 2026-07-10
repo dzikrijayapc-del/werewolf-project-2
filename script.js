@@ -54,9 +54,9 @@ const rollenUebersetzung = {
 let currentGameState = "lobby";
 let allPlayers = {};
 let currentNightActions = {};
+let currentDayVotes = {};
 let currentPlayerData = null;
 
-// FUNGSI UTAMA UNTUK MENGGAMBAR ULANG TAMPILAN PEMAIN
 function renderPlayerUI() {
     if (isMC) return;
     
@@ -80,14 +80,16 @@ function renderPlayerUI() {
             document.getElementById("gameplay-role-panel").classList.remove("hidden");
             document.getElementById("player-role").innerText = rollenUebersetzung[currentPlayerData.role] || currentPlayerData.role;
             
-            // Logika Indikator Waktu
             const phaseIndicator = document.getElementById("phase-indicator");
             const phaseName = document.getElementById("phase-name");
             phaseIndicator.classList.remove("hidden", "phase-night", "phase-day");
             
-            // Logika Aksi
+            // Sembunyikan semua interaksi default
             document.getElementById("action-werwolf").classList.add("hidden");
             document.getElementById("action-guardian").classList.add("hidden");
+            document.getElementById("action-day-vote").classList.add("hidden");
+            document.getElementById("vote-status-msg").classList.add("hidden");
+            
             const waitMsg = document.getElementById("action-wait-message");
             waitMsg.classList.remove("hidden");
             
@@ -107,48 +109,20 @@ function renderPlayerUI() {
             } else if (currentGameState === "tag") {
                 phaseIndicator.classList.add("phase-day");
                 phaseName.innerText = "☀️ Siang Hari";
-                waitMsg.innerText = "Matahari Terbit! Silakan berdiskusi dan voting siapa yang akan digantung.";
+                waitMsg.classList.add("hidden");
+                // Tampilkan menu voting saat siang
+                document.getElementById("action-day-vote").classList.remove("hidden");
             }
         }
     }
 }
 
-// PEMBARUAN: Panggil renderPlayerUI() saat data diri pemain berubah
 onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
     currentPlayerData = snapshot.val();
     renderPlayerUI();
 });
 
-// PEMBARUAN: Panggil juga renderPlayerUI() saat MC mengganti Waktu/State Game
-onValue(ref(db, "gameState"), (snap) => {
-    currentGameState = snap.val() || "lobby";
-    if (isMC) {
-        document.getElementById("mc-lobby-panel").classList.toggle("hidden", currentGameState !== "lobby");
-        document.getElementById("mc-controls-panel").classList.toggle("hidden", currentGameState === "lobby");
-        document.getElementById("mc-actions-monitor").classList.toggle("hidden", currentGameState === "lobby");
-    } else {
-        renderPlayerUI(); // 👈 BUG FIX: Refresh layar pemain tiap waktu berubah
-    }
-});
-
-
-document.getElementById("btn-register-player").addEventListener("click", () => {
-    const nameInput = document.getElementById("player-name-input").value.trim();
-    if (!nameInput) return alert("Masukkan nama kamu!");
-    
-    const currentPlayersCount = Object.keys(allPlayers).length;
-    
-    if (currentPlayersCount >= 8 && !allPlayers[currentPlayerId]) {
-        return alert("Maaf, Lobi sudah penuh! (Maksimal 8 pemain).");
-    }
-    
-    set(ref(db, `players/${currentPlayerId}`), {
-        name: nameInput,
-        role: "Belum ada",
-        isDead: false
-    });
-});
-
+// Update Menu Dropdown untuk Voting & Aksi
 onValue(ref(db, "players"), (snapshot) => {
     allPlayers = snapshot.val() || {};
     const playerIds = Object.keys(allPlayers);
@@ -165,15 +139,41 @@ onValue(ref(db, "players"), (snapshot) => {
 
     const wSelect = document.getElementById("wolf-target-select");
     const gSelect = document.getElementById("guardian-target-select");
-    if (wSelect && gSelect) {
-        wSelect.innerHTML = ""; gSelect.innerHTML = "";
+    const dSelect = document.getElementById("day-vote-select");
+    const mcExecSelect = document.getElementById("mc-execute-select");
+
+    if (wSelect && gSelect && dSelect && mcExecSelect) {
+        wSelect.innerHTML = ""; gSelect.innerHTML = ""; dSelect.innerHTML = ""; mcExecSelect.innerHTML = "";
+        
         Object.entries(allPlayers).forEach(([id, p]) => {
-            if (!p.isDead && id !== currentPlayerId) {
+            if (!p.isDead) {
                 const opt = `<option value="${id}">${p.name}</option>`;
-                wSelect.innerHTML += opt;
-                gSelect.innerHTML += opt;
+                
+                // Malam: tidak bisa menargetkan diri sendiri
+                if (id !== currentPlayerId) {
+                    wSelect.innerHTML += opt;
+                    gSelect.innerHTML += opt;
+                }
+                
+                // Siang & MC: Bebas pilih siapa saja yang hidup, termasuk diri sendiri
+                dSelect.innerHTML += opt;
+                mcExecSelect.innerHTML += opt;
             }
         });
+    }
+});
+
+onValue(ref(db, "gameState"), (snap) => {
+    currentGameState = snap.val() || "lobby";
+    if (isMC) {
+        document.getElementById("mc-lobby-panel").classList.toggle("hidden", currentGameState !== "lobby");
+        document.getElementById("mc-controls-panel").classList.toggle("hidden", currentGameState === "lobby");
+        
+        // Logika tampilan monitor MC (Malam vs Siang)
+        document.getElementById("mc-actions-monitor").classList.toggle("hidden", currentGameState !== "nacht");
+        document.getElementById("mc-day-monitor").classList.toggle("hidden", currentGameState !== "tag");
+    } else {
+        renderPlayerUI(); 
     }
 });
 
@@ -187,89 +187,119 @@ onValue(ref(db, "nightActions"), (snap) => {
     }
 });
 
+// Rekap Hasil Voting Siang (Hanya dilihat MC)
+onValue(ref(db, "votes"), (snap) => {
+    currentDayVotes = snap.val() || {};
+    if (isMC) {
+        const tally = {};
+        Object.entries(currentDayVotes).forEach(([voterId, targetId]) => {
+            if (!tally[targetId]) tally[targetId] = [];
+            tally[targetId].push(allPlayers[voterId]?.name || "Unknown");
+        });
+        
+        const mcVoteList = document.getElementById("mc-vote-results");
+        mcVoteList.innerHTML = "";
+        
+        if (Object.keys(tally).length === 0) {
+            mcVoteList.innerHTML = "<li>Belum ada vote yang masuk.</li>";
+        } else {
+            Object.entries(tally).forEach(([targetId, voters]) => {
+                const targetName = allPlayers[targetId]?.name || "Unknown";
+                mcVoteList.innerHTML += `<li><strong style="color:#ff3b30">${targetName}</strong> mendapat <strong>${voters.length} suara</strong> (dari: ${voters.join(", ")})</li>`;
+            });
+        }
+    }
+});
+
+// --- TOMBOL-TOMBOL & AKSI ---
+
+document.getElementById("btn-register-player").addEventListener("click", () => {
+    const nameInput = document.getElementById("player-name-input").value.trim();
+    if (!nameInput) return alert("Masukkan nama kamu!");
+    const currentPlayersCount = Object.keys(allPlayers).length;
+    if (currentPlayersCount >= 8 && !allPlayers[currentPlayerId]) return alert("Maaf, Lobi sudah penuh! (Maks. 8).");
+    set(ref(db, `players/${currentPlayerId}`), { name: nameInput, role: "Belum ada", isDead: false });
+});
+
 document.getElementById("btn-reset-players").addEventListener("click", () => {
-    if(confirm("AWAS! Ini akan MENGHAPUS SEMUA PEMAIN dari lobi. Pemain harus mendaftar ulang. Anda yakin?")) {
+    if(confirm("HAPUS SEMUA PEMAIN dari lobi?")) {
         set(ref(db, "players"), null);
-        update(ref(db), { gameState: "lobby", nightActions: { wolfTarget: "", guardianTarget: "" } });
+        update(ref(db), { gameState: "lobby", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null });
     }
 });
 
 document.getElementById("btn-start-game").addEventListener("click", () => {
     const ids = Object.keys(allPlayers);
     const count = ids.length;
+    if (count < 4 || count > 8) return alert(`Jumlah pemain harus 4-8 orang! (Saat ini: ${count})`);
     
-    if (count < 4 || count > 8) {
-        return alert(`Game tidak bisa dimulai! Jumlah pemain harus di antara 4 hingga 8 orang. (Saat ini: ${count} pemain)`);
-    }
-
     let rolesPool = [];
-    
     let wwCount = count < 5 ? 1 : 2; 
     for (let i = 0; i < wwCount; i++) rolesPool.push("Werewolf");
-
-    rolesPool.push("Seer");
-    rolesPool.push("Guardian");
-
-    if (count >= 5) {
-        rolesPool.push("Witch");
-    }
-
-    while (rolesPool.length < count) {
-        rolesPool.push("Villager");
-    }
-
+    rolesPool.push("Seer"); rolesPool.push("Guardian");
+    if (count >= 5) rolesPool.push("Witch");
+    while (rolesPool.length < count) rolesPool.push("Villager");
+    
     rolesPool.sort(() => Math.random() - 0.5); 
     
-    const updates = { 
-        gameState: "nacht", 
-        nightActions: { wolfTarget: "", guardianTarget: "" } 
-    };
-
-    ids.forEach((id, i) => { 
-        updates[`players/${id}/role`] = rolesPool[i]; 
-        updates[`players/${id}/isDead`] = false; 
-    });
-
-    update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain! Peran berhasil diacak.`));
+    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null };
+    ids.forEach((id, i) => { updates[`players/${id}/role`] = rolesPool[i]; updates[`players/${id}/isDead`] = false; });
+    update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
 
+// Aksi Pemain: Malam
 document.getElementById("btn-wolf-kill").addEventListener("click", () => {
-    const target = document.getElementById("wolf-target-select").value;
-    update(ref(db, "nightActions"), { wolfTarget: target }).then(() => alert("Target mangsa dikirim ke MC!"));
+    update(ref(db, "nightActions"), { wolfTarget: document.getElementById("wolf-target-select").value });
 });
-
 document.getElementById("btn-guardian-protect").addEventListener("click", () => {
-    const target = document.getElementById("guardian-target-select").value;
-    update(ref(db, "nightActions"), { guardianTarget: target }).then(() => alert("Target perlindungan dikirim ke MC!"));
+    update(ref(db, "nightActions"), { guardianTarget: document.getElementById("guardian-target-select").value });
 });
 
+// Aksi Pemain: Voting Siang
+document.getElementById("btn-submit-vote").addEventListener("click", () => {
+    const target = document.getElementById("day-vote-select").value;
+    set(ref(db, `votes/${currentPlayerId}`), target).then(() => {
+        const msg = document.getElementById("vote-status-msg");
+        msg.classList.remove("hidden");
+        setTimeout(() => msg.classList.add("hidden"), 3000);
+    });
+});
+
+// MC: Eksekusi Hasil Malam
 document.getElementById("btn-resolve-night").addEventListener("click", () => {
     const wTarget = currentNightActions.wolfTarget;
     const gTarget = currentNightActions.guardianTarget;
-    
-    // Ini yang merubah fase ke "tag" (Siang) secara sistem
-    const updates = { 
-        gameState: "tag", 
-        nightActions: { wolfTarget: "", guardianTarget: "" } 
-    };
+    const updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null };
 
     if (wTarget && wTarget !== gTarget) {
         updates[`players/${wTarget}/isDead`] = true;
-        alert(`Kalkulasi Selesai: Pemain bernama "${allPlayers[wTarget].name}" MATI dimangsa Werewolf!`);
+        alert(`Kalkulasi: "${allPlayers[wTarget].name}" MATI dimangsa Werewolf!`);
     } else if (wTarget && wTarget === gTarget) {
-        alert("Kalkulasi Selesai: Selamat! Target yang diserang Werewolf berhasil dilindungi oleh Guardian.");
-    } else {
-        alert("Kalkulasi Selesai: Tidak ada data aksi pembunuhan malam ini.");
+        alert("Kalkulasi: Target berhasil dilindungi oleh Guardian.");
     }
-
-    // Eksekusi pembaruan ke Database
     update(ref(db), updates);
 });
 
-document.getElementById("btn-state-lobby").addEventListener("click", () => {
-    if(confirm("Kembali ke Lobi awal? (Nama pemain tetap tersimpan)")) {
-        update(ref(db), { gameState: "lobby", nightActions: { wolfTarget: "", guardianTarget: "" } });
+// MC: Eksekusi Hasil Voting Siang
+document.getElementById("btn-mc-execute").addEventListener("click", () => {
+    const targetId = document.getElementById("mc-execute-select").value;
+    if(!targetId) return alert("Pilih pemain yang akan dieksekusi!");
+    
+    const targetName = allPlayers[targetId].name;
+    const targetRole = rollenUebersetzung[allPlayers[targetId].role] || allPlayers[targetId].role;
+
+    if(confirm(`Anda akan menggantung ${targetName}. Perannya adalah ${targetRole}. Lanjutkan?`)) {
+        const updates = {
+            [`players/${targetId}/isDead`]: true,
+            gameState: "nacht", // Balik lagi ke malam
+            nightActions: { wolfTarget: "", guardianTarget: "" },
+            votes: null // Reset hasil vote
+        };
+        update(ref(db), updates).then(() => alert(`${targetName} telah dieksekusi.`));
     }
 });
-document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht" }));
-document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag" }));
+
+// Kendali Manual MC
+document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null }));
+document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht", votes: null }));
+document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null }));
