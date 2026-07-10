@@ -44,6 +44,15 @@
         #btn-guardian-protect { background-color: #0a84ff; }
         ul { list-style: none; padding: 0; }
         li { background: #2c2c2e; padding: 10px; margin: 5px 0; border-radius: 6px; }
+        
+        /* Gaya Khusus Indikator Waktu */
+        .phase-banner {
+            padding: 12px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; 
+            margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        .phase-night { background: #1c1c1e; color: #a0a0ff; border: 1px solid #5856d6; }
+        .phase-day { background: #ffcc00; color: #000; border: 1px solid #e6b800; }
     </style>
 </head>
 <body>
@@ -86,6 +95,11 @@
             </div>
 
             <div id="gameplay-role-panel" class="hidden">
+                <!-- INDIKATOR FASE WAKTU -->
+                <div id="phase-indicator" class="phase-banner hidden">
+                    <span id="phase-name">Memuat Fase...</span>
+                </div>
+
                 <h2>Peran Kamu</h2>
                 <div class="role-badge" id="player-role">Memuat...</div>
                 
