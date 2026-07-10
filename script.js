@@ -57,7 +57,6 @@ let currentNightActions = {};
 let currentDayVotes = {};
 let currentPlayerData = null;
 
-// Konfigurasi Default Json NightActions
 const emptyNightActions = {
     guardianTarget: "",
     wolfTarget: "",
@@ -159,6 +158,7 @@ onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
     renderPlayerUI();
 });
 
+// LOGIKA PEMBAGIAN NAMA DI DROPDOWN (DIPERBARUI)
 onValue(ref(db, "players"), (snapshot) => {
     allPlayers = snapshot.val() || {};
     const playerIds = Object.keys(allPlayers);
@@ -188,14 +188,18 @@ onValue(ref(db, "players"), (snapshot) => {
         Object.entries(allPlayers).forEach(([id, p]) => {
             if (!p.isDead) {
                 const opt = `<option value="${id}">${p.name}</option>`;
+                
+                // Werewolf, Seer, dan Racun Witch TIDAK bisa pilih diri sendiri
                 if (id !== currentPlayerId) {
                     wSelect.innerHTML += opt;
-                    gSelect.innerHTML += opt;
                     seerSelect.innerHTML += opt;
+                    witchPSelect.innerHTML += opt;
                 }
-                dSelect.innerHTML += opt;
-                witchPSelect.innerHTML += opt;
+                
+                // Guardian, Obat Witch, dan Voting Siang BISA pilih diri sendiri
+                gSelect.innerHTML += opt;
                 witchHSelect.innerHTML += opt;
+                dSelect.innerHTML += opt;
             }
         });
     }
@@ -238,7 +242,6 @@ onValue(ref(db, "gameState"), (snap) => {
     }
 });
 
-// Update Monitor MC berdasarkan JSON yang lengkap
 onValue(ref(db, "nightActions"), (snap) => {
     currentNightActions = snap.val() || emptyNightActions;
     if (isMC) {
@@ -324,7 +327,6 @@ document.getElementById("btn-start-game").addEventListener("click", () => {
     update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
 
-// Aksi Pemain Malam Hari
 document.getElementById("btn-wolf-kill").addEventListener("click", () => {
     update(ref(db, "nightActions"), { wolfTarget: document.getElementById("wolf-target-select").value });
 });
@@ -337,10 +339,8 @@ document.getElementById("btn-seer-reveal").addEventListener("click", () => {
     const targetId = document.getElementById("seer-target-select").value;
     if (!targetId) return;
     
-    // Simpan ke DB agar MC bisa lihat
     update(ref(db, "nightActions"), { seerTarget: targetId });
     
-    // Tampilkan di layar Seer
     const target = allPlayers[targetId];
     const roleStr = rollenUebersetzung[target.role] || target.role;
     const resEl = document.getElementById("seer-result");
@@ -358,7 +358,6 @@ document.getElementById("btn-witch-heal").addEventListener("click", () => {
     document.getElementById("witch-status-msg").classList.remove("hidden");
 });
 
-// Aksi Siang: Voting
 document.getElementById("btn-submit-vote").addEventListener("click", () => {
     const target = document.getElementById("day-vote-select").value;
     set(ref(db, `votes/${currentPlayerId}`), target).then(() => {
@@ -368,7 +367,6 @@ document.getElementById("btn-submit-vote").addEventListener("click", () => {
     });
 });
 
-// MC: Kalkulasi Malam (dengan logika racun dan penyembuh)
 document.getElementById("btn-resolve-night").addEventListener("click", () => {
     const wTarget = currentNightActions.wolfTarget;
     const gTarget = currentNightActions.guardianTarget;
@@ -378,12 +376,10 @@ document.getElementById("btn-resolve-night").addEventListener("click", () => {
     let updates = { gameState: "tag", nightActions: emptyNightActions, votes: null, voteAlert: null };
     let deadList = [];
 
-    // WW membunuh target jika tidak dilindungi Guardian dan tidak disembuhkan Witch
     if (wTarget && wTarget !== gTarget && wTarget !== whTarget) {
         deadList.push(wTarget);
     }
     
-    // Witch meracuni target (mati)
     if (wpTarget && wpTarget !== whTarget) {
         if (!deadList.includes(wpTarget)) deadList.push(wpTarget);
     }
@@ -406,7 +402,6 @@ document.getElementById("btn-resolve-night").addEventListener("click", () => {
     });
 });
 
-// MC: Eksekusi Voting Siang (Berdasarkan jumlah terbanyak)
 document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     const votes = Object.values(currentDayVotes);
     
@@ -458,7 +453,6 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     }
 });
 
-// Kontrol Kemenangan (MC Only)
 document.getElementById("btn-play-again")?.addEventListener("click", () => {
     const updates = { gameState: "lobby", winData: null, nightActions: emptyNightActions, votes: null, voteAlert: null };
     Object.keys(allPlayers).forEach(id => {
@@ -475,7 +469,6 @@ document.getElementById("btn-restart-all")?.addEventListener("click", () => {
     }
 });
 
-// Navigasi MC Manual
 document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null, voteAlert: null }));
 document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht", nightActions: emptyNightActions, votes: null, voteAlert: null }));
 document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null, voteAlert: null }));
