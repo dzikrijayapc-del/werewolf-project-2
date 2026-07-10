@@ -57,6 +57,7 @@ let currentNightActions = {};
 let currentDayVotes = {};
 let currentPlayerData = null;
 
+// GANTI FUNGSI renderPlayerUI dengan versi yang lebih 'bebas' ini:
 function renderPlayerUI() {
     if (isMC) return;
     
@@ -84,15 +85,14 @@ function renderPlayerUI() {
             const phaseName = document.getElementById("phase-name");
             phaseIndicator.classList.remove("hidden", "phase-night", "phase-day");
             
-            // Sembunyikan semua interaksi default
+            // RESET SEMUA KONTROL
             document.getElementById("action-werwolf").classList.add("hidden");
             document.getElementById("action-guardian").classList.add("hidden");
             document.getElementById("action-day-vote").classList.add("hidden");
-            document.getElementById("vote-status-msg").classList.add("hidden");
-            
             const waitMsg = document.getElementById("action-wait-message");
             waitMsg.classList.remove("hidden");
-            
+
+            // LOGIKA FASE YANG BEBAS (Tidak perlu menunggu kejadian)
             if (currentGameState === "nacht") {
                 phaseIndicator.classList.add("phase-night");
                 phaseName.innerText = "🌙 Malam Hari";
@@ -104,13 +104,14 @@ function renderPlayerUI() {
                     document.getElementById("action-guardian").classList.remove("hidden");
                     waitMsg.classList.add("hidden");
                 } else {
-                    waitMsg.innerText = "Malam hari telah tiba. Harap tunggu peran lain bergerak...";
+                    waitMsg.innerText = "Malam hari... Tetap tenang.";
                 }
             } else if (currentGameState === "tag") {
                 phaseIndicator.classList.add("phase-day");
-                phaseName.innerText = "☀️ Siang Hari";
+                phaseName.innerText = "☀️ Siang Hari - DISKUSI & VOTE";
                 waitMsg.classList.add("hidden");
-                // Tampilkan menu voting saat siang
+                
+                // TOMBOL VOTE SEKARANG MUNCUL OTOMATIS SAAT MC PINDAH KE FASE SIANG
                 document.getElementById("action-day-vote").classList.remove("hidden");
             }
         }
