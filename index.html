@@ -2,34 +2,34 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Werewolf Project</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Werewolf Game Pro</title>
+    <style>
+        body { font-family: sans-serif; background: #2c3e50; color: white; text-align: center; }
+        .hidden { display: none !important; }
+        .card { background: #34495e; padding: 15px; margin: 10px; border-radius: 10px; }
+        button { padding: 10px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div id="loading-screen"><h2>Menghubungkan ke Game...</h2></div>
-
-        <div id="main-content" class="hidden">
-            <div id="player-panel">
-                <input type="text" id="player-name" placeholder="Masukkan nama kamu...">
-                <button onclick="registerPlayer()" class="state-btn">Join Game</button>
+    <div id="app">
+        <h1 id="status-text">Menunggu Game...</h1>
+        <div id="player-panel">
+            <input type="text" id="player-name" placeholder="Nama Anda...">
+            <button onclick="registerPlayer()">Join</button>
+        </div>
+        
+        <div id="game-ui" class="hidden">
+            <div class="card" id="my-role-card"></div>
+            <div id="action-panel" class="hidden">
+                <h3>Aksi Malam:</h3>
+                <div id="target-buttons"></div>
             </div>
+            <ul id="players-list" style="list-style: none;"></ul>
+        </div>
 
-            <div id="players-list-area">
-                <h3>Daftar Pemain:</h3>
-                <ul id="players-ul"></ul>
-            </div>
-
-            <!-- Panel Khusus MC -->
-            <div id="mc-controls" class="hidden" style="margin-top: 20px; border-top: 2px solid #ccc; padding-top: 20px;">
-                <h3>Panel Kontrol MC</h3>
-                <button onclick="startGame()" style="background: #28a745; color: white; padding: 10px;">Mulai (Acak Peran)</button>
-                <button onclick="resetGame()" style="background: #dc3545; color: white; padding: 10px;">RESET SEMUA</button>
-            </div>
-
-            <!-- Area Tampilan Peran Pemain -->
-            <div id="role-display" style="margin-top: 20px; font-weight: bold; font-size: 1.2em;"></div>
+        <div id="mc-controls" class="hidden">
+            <button onclick="startGame()">Mulai Game</button>
+            <button onclick="resetGame()" style="background:red;">Reset</button>
         </div>
     </div>
     <script type="module" src="script.js"></script>
