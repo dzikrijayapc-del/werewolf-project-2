@@ -118,6 +118,30 @@
                         <button id="btn-guardian-protect" class="action-btn">Lindungi</button>
                     </div>
 
+                    <div id="action-seer" class="hidden">
+                        <h3 style="color: #bf5af2;">Aksi Penerawang 🔮</h3>
+                        <p>Pilih pemain untuk mengetahui perannya:</p>
+                        <select id="seer-target-select"></select>
+                        <button id="btn-seer-reveal" class="action-btn" style="background-color: #bf5af2;">Terawang Identitas</button>
+                        <p id="seer-result" style="color: #bf5af2; margin-top: 15px; font-size: 1.1em; font-weight: bold; background: #2c2c2e; padding: 10px; border-radius: 8px;" class="hidden"></p>
+                    </div>
+
+                    <div id="action-witch" class="hidden">
+                        <h3 style="color: #32d74b;">Aksi Penyihir 🧪</h3>
+                        <p style="margin-bottom: 5px; font-size: 0.9em; color: #ff3b30;">Racun (Membunuh target):</p>
+                        <select id="witch-poison-select">
+                            <option value="">-- Tidak Meracun --</option>
+                        </select>
+                        <button id="btn-witch-poison" class="action-btn" style="background-color: #ff3b30; color: white;">Racuni</button>
+                        
+                        <p style="margin-top: 15px; margin-bottom: 5px; font-size: 0.9em; color: #0a84ff;">Obat (Menyelamatkan target):</p>
+                        <select id="witch-heal-select">
+                            <option value="">-- Tidak Menyembuhkan --</option>
+                        </select>
+                        <button id="btn-witch-heal" class="action-btn" style="background-color: #0a84ff; color: white;">Sembuhkan</button>
+                        <p id="witch-status-msg" style="color: #32d74b; margin-top: 10px;" class="hidden">Aksi disiapkan!</p>
+                    </div>
+
                     <div id="action-day-vote" class="hidden">
                         <h3 style="color: #ffcc00;">Fase Voting Siang ☀️</h3>
                         <p>Pilih siapa yang ingin kamu gantung:</p>
@@ -151,7 +175,9 @@
             <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
                 <h3 style="color: #a0a0ff;">Aktivitas Malam Ini:</h3>
                 <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
-                <p>🛡️ Target Pelindung: <span id="mc-guardian-target" style="color: #0a84ff; font-weight: bold;">-</span></p>
+                <p>🛡️ Target Guardian: <span id="mc-guardian-target" style="color: #0a84ff; font-weight: bold;">-</span></p>
+                <p>🧪 Racun Penyihir: <span id="mc-witch-poison" style="color: #ff3b30; font-weight: bold;">-</span></p>
+                <p>💖 Obat Penyihir: <span id="mc-witch-heal" style="color: #0a84ff; font-weight: bold;">-</span></p>
                 <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam (Lanjut Siang)</button>
             </div>
 
