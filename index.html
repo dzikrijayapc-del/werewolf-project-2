@@ -318,4 +318,89 @@ document.getElementById("btn-submit-vote").addEventListener("click", () => {
 document.getElementById("btn-resolve-night").addEventListener("click", () => {
     const wTarget = currentNightActions.wolfTarget;
     const gTarget = currentNightActions.guardianTarget;
-    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert
+    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null };
+
+    if (wTarget && wTarget !== gTarget) {
+        updates[`players/${wTarget}/isDead`] = true;
+        alert(`Kalkulasi: "${allPlayers[wTarget]?.name}" MATI dimangsa Werewolf!`);
+    } else if (wTarget && wTarget === gTarget) {
+        alert("Kalkulasi: Target berhasil dilindungi oleh Guardian.");
+    }
+    
+    update(ref(db), updates).then(() => {
+        if (wTarget && wTarget !== gTarget) checkWinConditions();
+    });
+});
+
+// MC: Eksekusi Hasil Voting Siang (Otomatis)
+document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
+    const votes = Object.values(currentDayVotes);
+    
+    if (votes.length === 0) {
+        return alert("Belum ada pemain yang memberikan suara!");
+    }
+
+    const tally = {};
+    votes.forEach(targetId => {
+        tally[targetId] = (tally[targetId] || 0) + 1;
+    });
+
+    let maxVotes = 0;
+    let topTargets = [];
+
+    Object.entries(tally).forEach(([targetId, count]) => {
+        if (count > maxVotes) {
+            maxVotes = count;
+            topTargets = [targetId]; 
+        } else if (count === maxVotes) {
+            topTargets.push(targetId);
+        }
+    });
+
+    if (topTargets.length === 1) {
+        const targetId = topTargets[0];
+        const targetName = allPlayers[targetId].name;
+        
+        alert(`Kalkulasi Selesai: "${targetName}" akan dieksekusi dengan ${maxVotes} suara!`);
+
+        const updates = {
+            [`players/${targetId}/isDead`]: true,
+            gameState: "nacht", 
+            nightActions: { wolfTarget: "", guardianTarget: "" },
+            votes: null,
+            voteAlert: null 
+        };
+        
+        update(ref(db), updates).then(() => {
+            checkWinConditions(); 
+        });
+
+    } else {
+        update(ref(db), {
+            votes: null, 
+            voteAlert: Date.now() 
+        });
+    }
+});
+
+// KONTROL RESET SAAT MENANG KHUSUS MC
+document.getElementById("btn-play-again")?.addEventListener("click", () => {
+    const updates = { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null };
+    Object.keys(allPlayers).forEach(id => {
+        updates[`players/${id}/role`] = "Belum ada";
+        updates[`players/${id}/isDead`] = false;
+    });
+    update(ref(db), updates);
+});
+
+document.getElementById("btn-restart-all")?.addEventListener("click", () => {
+    if(confirm("Yakin ingin mereset semua pemain? Mereka harus registrasi nama ulang.")) {
+        set(ref(db, "players"), null);
+        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null });
+    }
+});
+
+// Kendali Manual MC
+document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null, voteAlert: null }));
+document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht", votes: null, voteAlert: null }));
+document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null, voteAlert: null }));
