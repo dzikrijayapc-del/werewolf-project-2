@@ -9,7 +9,7 @@
             background-color: #121212; color: #e0e0e0;
             font-family: 'Segoe UI', Arial, sans-serif; text-align: center;
             padding: 20px; margin: 0;
-         }
+        }
         .container {
             max-width: 500px; margin: 40px auto; background: #1e1e1e;
             padding: 30px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.8);
@@ -39,7 +39,9 @@
             color: white; border: none; padding: 12px 15px; cursor: pointer;
             width: 100%; border-radius: 8px; font-weight: bold; font-size: 1.1rem;
             margin-bottom: 10px;
+            transition: background 0.2s ease;
         }
+        .action-btn:hover { opacity: 0.9; }
         #btn-wolf-kill { background-color: #ff3b30; }
         #btn-guardian-protect { background-color: #0a84ff; }
         ul { list-style: none; padding: 0; }
@@ -58,10 +60,9 @@
 <body>
 
     <div class="container" id="main-container">
-        <!-- 🛠️ MODE DEVELOPER -->
         <div style="background: #2c2c2e; padding: 12px; margin-bottom: 25px; border-radius: 8px; border: 1px dashed #ff3b30; text-align: left;">
             <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer (Simulasi Akun):</label>
-            <select id="dev-role-select" style="margin-top: 5px;">
+            <select id="dev-role-select" style="margin-top: 5px; margin-bottom: 0;">
                 <option value="mc">Moderator (MC)</option>
                 <option value="player_1">Pemain 1</option>
                 <option value="player_2">Pemain 2</option>
@@ -79,7 +80,6 @@
             <p>Menghubungkan ke server...</p>
         </div>
 
-        <!-- Tampilan Pemain -->
         <div id="player-screen" class="hidden">
             <div id="lobby-registration-panel" class="hidden">
                 <h2 style="color: #ff3b30;">Selamat Datang!</h2>
@@ -94,7 +94,6 @@
             </div>
 
             <div id="gameplay-role-panel" class="hidden">
-                <!-- INDIKATOR FASE WAKTU -->
                 <div id="phase-indicator" class="phase-banner hidden">
                     <span id="phase-name">Memuat Fase...</span>
                 </div>
@@ -105,7 +104,6 @@
                 <div id="player-action-area" style="margin-top: 40px;">
                     <p id="action-wait-message">Tunggu instruksi selanjutnya...</p>
                     
-                    <!-- Aksi Malam (Hanya aktif saat Malam) -->
                     <div id="action-werwolf" class="hidden">
                         <h3 style="color: #ff3b30;">Aksi Werewolf 🐺</h3>
                         <p>Pilih pemain yang ingin kamu mangsa:</p>
@@ -120,10 +118,9 @@
                         <button id="btn-guardian-protect" class="action-btn">Lindungi</button>
                     </div>
 
-                    <!-- Aksi Siang (Aktif saat Siang) -->
                     <div id="action-day-vote" class="hidden">
                         <h3 style="color: #ffcc00;">Fase Voting Siang ☀️</h3>
-                        <p>Pilih siapa yang ingin kamu gantung (bisa pilih diri sendiri):</p>
+                        <p>Pilih siapa yang ingin kamu gantung:</p>
                         <select id="day-vote-select"></select>
                         <button id="btn-submit-vote" class="action-btn" style="background-color: #ffcc00; color: black;">Kirim Vote</button>
                         <p id="vote-status-msg" style="color: #34c759; margin-top: 10px;" class="hidden">Vote berhasil dikirim ke MC!</p>
@@ -132,7 +129,6 @@
             </div>
         </div>
 
-        <!-- Tampilan MC -->
         <div id="mc-screen" class="hidden">
             <h2 style="color: #ff3b30;">Moderator Game (MC)</h2>
             
@@ -145,12 +141,13 @@
 
             <div id="mc-controls-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px;">
                 <h3>Fase Permainan</h3>
-                <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Kembali ke Lobi</button>
-                <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Malam 🌙</button>
-                <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Siang ☀️</button>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Lobi</button>
+                    <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Malam 🌙</button>
+                    <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer; flex: 1;">Siang ☀️</button>
+                </div>
             </div>
             
-            <!-- Monitor MC Saat Malam -->
             <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
                 <h3 style="color: #a0a0ff;">Aktivitas Malam Ini:</h3>
                 <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
@@ -158,14 +155,13 @@
                 <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam (Lanjut Siang)</button>
             </div>
 
-            <!-- Monitor MC Saat Siang (Voting IRL) -->
             <div id="mc-day-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
                 <h3 style="color: #ffcc00;">Log Hasil Voting (Siang):</h3>
                 <ul id="mc-vote-results" style="color: white;"></ul>
                 
                 <div style="margin-top: 15px; border-top: 1px solid #444; padding-top: 15px;">
                     <p style="color: #ff9500; font-weight: bold;">Eksekusi Pemain (Manual oleh MC):</p>
-                    <p style="font-size: 0.9em;">Bacakan hasilnya IRL, lalu pilih siapa yang digantung.</p>
+                    <p style="font-size: 0.9em; color: #aaa;">Bacakan hasilnya IRL, lalu pilih siapa yang digantung.</p>
                     <select id="mc-execute-select"></select>
                     <button id="btn-mc-execute" class="action-btn" style="background-color: #ff3b30;">Eksekusi & Lanjut Malam 🌙</button>
                 </div>
@@ -173,18 +169,17 @@
         </div>
     </div>
 
-    <!-- Layar Kematian -->
     <div id="dead-screen" class="dead-screen hidden">
         <h1>KAMU SUDAH MATI 💀</h1>
         <p>Kamu sudah tereliminasi dan tidak bisa berpartisipasi lagi.</p>
     </div>
 
+    <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95); color: #34c759;">
+        <h1 id="win-message" style="font-size: 3rem;">-</h1>
+        <p id="win-submessage" style="font-size: 1.5rem; color: #fff;"></p>
+        <button id="btn-restart-game" class="action-btn" style="width: 200px; margin-top: 20px; background-color: #ff9500;">Main Lagi</button>
+    </div>
+
     <script type="module" src="script.js"></script>
-     <!-- Tambahkan ini tepat sebelum penutup tag </body> -->
-<div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.95);">
-    <h1 id="win-message" style="font-size: 3rem;">-</h1>
-    <p id="win-submessage" style="font-size: 1.5rem;"></p>
-    <button onclick="location.reload()" class="action-btn" style="width: 200px; margin-top: 20px;">Main Lagi</button>
-</div>
 </body>
 </html>
