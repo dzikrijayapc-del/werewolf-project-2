@@ -118,6 +118,71 @@ function renderPlayerUI() {
     }
 }
 
+// --- FUNGSI DETEKSI KEMENANGAN ---
+function checkWinConditions() {
+    const players = Object.values(allPlayers);
+    const alivePlayers = players.filter(p => !p.isDead);
+    
+    const aliveWerewolves = alivePlayers.filter(p => p.role === "Werewolf");
+    const aliveVillagers = alivePlayers.filter(p => p.role !== "Werewolf");
+
+    let winner = null;
+    let subMsg = "";
+
+    // KONDISI 1: Manusia menang (Semua Werewolf mati)
+    if (aliveWerewolves.length === 0) {
+        winner = "WARGA DESA MENANG! 🧑‍🌾";
+        subMsg = "Semua Werewolf berhasil dieksekusi.";
+    } 
+    // KONDISI 2: Werewolf menang (Jumlah WW >= Jumlah Villager)
+    else if (aliveWerewolves.length >= aliveVillagers.length) {
+        winner = "WEREWOLF MENANG! 🐺";
+        subMsg = "Werewolf telah menguasai desa.";
+    }
+
+    if (winner) {
+        update(ref(db), { gameState: "ended" });
+        // Tampilkan ke semua pemain
+        document.getElementById("win-screen").classList.remove("hidden");
+        document.getElementById("win-message").innerText = winner;
+        document.getElementById("win-submessage").innerText = subMsg;
+    }
+}
+
+// --- UPDATE FUNGSI RESOLVE MALAM (MC) ---
+document.getElementById("btn-resolve-night").addEventListener("click", () => {
+    const wTarget = currentNightActions.wolfTarget;
+    const gTarget = currentNightActions.guardianTarget;
+    
+    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null };
+
+    if (wTarget && wTarget !== gTarget) {
+        updates[`players/${wTarget}/isDead`] = true;
+        // Panggil pengecekan kemenangan setelah update
+    }
+    
+    update(ref(db), updates).then(() => {
+        if (wTarget && wTarget !== gTarget) checkWinConditions();
+    });
+});
+
+// --- UPDATE FUNGSI EKSEKUSI SIANG (MC) ---
+document.getElementById("btn-mc-execute").addEventListener("click", () => {
+    const targetId = document.getElementById("mc-execute-select").value;
+    if(!targetId) return;
+
+    const updates = {
+        [`players/${targetId}/isDead`]: true,
+        gameState: "nacht",
+        nightActions: { wolfTarget: "", guardianTarget: "" },
+        votes: null
+    };
+
+    update(ref(db), updates).then(() => {
+        checkWinConditions(); // Cek apakah setelah eksekusi permainan berakhir
+    });
+});
+
 onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
     currentPlayerData = snapshot.val();
     renderPlayerUI();
