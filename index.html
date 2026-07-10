@@ -2,36 +2,39 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Werewolf Game Pro</title>
+    <title>Werewolf Game</title>
     <style>
-        body { font-family: sans-serif; background: #2c3e50; color: white; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 20px; }
+        .card { background: #16213e; padding: 20px; border-radius: 15px; margin: 10px auto; max-width: 400px; border: 2px solid #0f3460; }
+        button { background: #e94560; color: white; border: none; padding: 10px; margin: 5px; border-radius: 5px; cursor: pointer; }
         .hidden { display: none !important; }
-        .card { background: #34495e; padding: 15px; margin: 10px; border-radius: 10px; }
-        button { padding: 10px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+        ul { list-style: none; padding: 0; }
+        li { background: #0f3460; padding: 10px; margin: 5px; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <div id="app">
-        <h1 id="status-text">Menunggu Game...</h1>
-        <div id="player-panel">
-            <input type="text" id="player-name" placeholder="Nama Anda...">
-            <button onclick="registerPlayer()">Join</button>
-        </div>
-        
-        <div id="game-ui" class="hidden">
-            <div class="card" id="my-role-card"></div>
-            <div id="action-panel" class="hidden">
-                <h3>Aksi Malam:</h3>
-                <div id="target-buttons"></div>
-            </div>
-            <ul id="players-list" style="list-style: none;"></ul>
-        </div>
+    <div id="player-panel">
+        <input type="text" id="player-name" placeholder="Nama Anda...">
+        <button onclick="registerPlayer()">Join Game</button>
+    </div>
 
-        <div id="mc-controls" class="hidden">
-            <button onclick="startGame()">Mulai Game</button>
-            <button onclick="resetGame()" style="background:red;">Reset</button>
+    <div id="game-ui" class="hidden">
+        <div class="card" id="my-role-display">Peran Anda: -</div>
+        <h3>Daftar Pemain:</h3>
+        <ul id="players-list"></ul>
+        
+        <div id="action-panel" class="hidden">
+            <h3>Aksi Malam:</h3>
+            <div id="target-buttons"></div>
         </div>
     </div>
+
+    <div id="mc-controls" class="hidden card">
+        <h3>Panel MC</h3>
+        <button onclick="startGame()">Mulai Game (Acak Peran)</button>
+        <button onclick="resetGame()" style="background:#555;">Reset</button>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
