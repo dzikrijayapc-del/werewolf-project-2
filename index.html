@@ -41,17 +41,25 @@
         }
         #btn-wolf-kill { background-color: #ff3b30; }
         #btn-guardian-protect { background-color: #0a84ff; }
+        ul { list-style: none; padding: 0; }
+        li { background: #2c2c2e; padding: 10px; margin: 5px 0; border-radius: 6px; }
     </style>
 </head>
 <body>
 
     <div class="container" id="main-container">
-        <!-- 🛠️ MODE DEVELOPER -->
+        <!-- 🛠️ MODE DEVELOPER (Diperluas sampai 8 Pemain) -->
         <div style="background: #2c2c2e; padding: 12px; margin-bottom: 25px; border-radius: 8px; border: 1px dashed #ff3b30; text-align: left;">
-            <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer:</label>
+            <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer (Ganti Akun):</label>
             <select id="dev-role-select" style="margin-top: 5px;">
                 <option value="player_1">Pemain 1</option>
                 <option value="player_2">Pemain 2</option>
+                <option value="player_3">Pemain 3</option>
+                <option value="player_4">Pemain 4</option>
+                <option value="player_5">Pemain 5</option>
+                <option value="player_6">Pemain 6</option>
+                <option value="player_7">Pemain 7</option>
+                <option value="player_8">Pemain 8</option>
                 <option value="mc">Moderator (MC)</option>
             </select>
         </div>
@@ -73,7 +81,7 @@
             <div id="lobby-waiting-panel" class="hidden">
                 <h2>Lobi Permainan</h2>
                 <p>Halo <strong id="waiting-player-name" style="color: #ff3b30;">-</strong>,</p>
-                <p>Mohon tunggu sampai MC mengacak peran.</p>
+                <p>Kamu sudah terdaftar. Mohon tunggu sampai 8 pemain berkumpul dan MC memulai game.</p>
             </div>
 
             <div id="gameplay-role-panel" class="hidden">
@@ -84,13 +92,15 @@
                     <p id="action-wait-message">Tunggu fase malam untuk melakukan aksimu...</p>
                     
                     <div id="action-werwolf" class="hidden">
-                        <h3 style="color: #ff3b30;">Aksi Werewolf</h3>
+                        <h3 style="color: #ff3b30;">Aksi Werewolf 🐺</h3>
+                        <p>Pilih pemain yang ingin kamu mangsa:</p>
                         <select id="wolf-target-select"></select>
                         <button id="btn-wolf-kill" class="action-btn">Mangsa</button>
                     </div>
 
                     <div id="action-guardian" class="hidden">
-                        <h3 style="color: #0a84ff;">Aksi Pelindung</h3>
+                        <h3 style="color: #0a84ff;">Aksi Pelindung 🛡️</h3>
+                        <p>Pilih pemain yang ingin kamu lindungi:</p>
                         <select id="guardian-target-select"></select>
                         <button id="btn-guardian-protect" class="action-btn">Lindungi</button>
                     </div>
@@ -102,22 +112,22 @@
         <div id="mc-screen" class="hidden">
             <h2>Moderator Game (MC)</h2>
             <div id="mc-lobby-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px;">
-                <h3>Pemain Terdaftar:</h3>
+                <h3>Pemain Terdaftar (<span id="player-count-badge">0</span>/8):</h3>
                 <ul id="mc-players-list" style="text-align: left; color: #ff9500;"></ul>
                 <button id="btn-start-game" class="action-btn" style="background-color: #ff9500;">Acak Peran & Mulai 🃏</button>
             </div>
 
             <div id="mc-controls-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px;">
                 <h3>Fase Permainan</h3>
-                <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px;">Lobi</button>
-                <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px;">Malam 🌙</button>
-                <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px;">Siang ☀️</button>
+                <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Lobi / Reset</button>
+                <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Malam 🌙</button>
+                <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Siang ☀️</button>
             </div>
             
             <div id="mc-actions-monitor" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: left;">
                 <h3>Aktivitas Malam Ini:</h3>
-                <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30;">-</span></p>
-                <p>🛡️ Target Pelindung: <span id="mc-guardian-target" style="color: #0a84ff;">-</span></p>
+                <p>🐺 Target Werewolf: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
+                <p>🛡️ Target Pelindung: <span id="mc-guardian-target" style="color: #0a84ff; font-weight: bold;">-</span></p>
                 <button id="btn-resolve-night" class="action-btn" style="background-color: #34c759; margin-top: 15px;">Kalkulasi Hasil Malam</button>
             </div>
         </div>
@@ -125,8 +135,8 @@
 
     <!-- Layar Kematian -->
     <div id="dead-screen" class="dead-screen hidden">
-        <h1>KAMU SUDAH MATI</h1>
-        <p>Kamu sudah tereliminasi dan menjadi arwah gentayangan.</p>
+        <h1>KAMU SUDAH MATI 💀</h1>
+        <p>Kamu sudah tereliminasi dan tidak bisa melakukan aksi di babak ini.</p>
     </div>
 
     <script type="module" src="script.js"></script>
