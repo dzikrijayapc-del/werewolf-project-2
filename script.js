@@ -84,9 +84,13 @@ function renderPlayerUI() {
             const phaseName = document.getElementById("phase-name");
             phaseIndicator.classList.remove("hidden", "phase-night", "phase-day");
             
+            // Sembunyikan semua aksi secara default
             document.getElementById("action-werwolf").classList.add("hidden");
             document.getElementById("action-guardian").classList.add("hidden");
+            document.getElementById("action-seer").classList.add("hidden");
+            document.getElementById("action-witch").classList.add("hidden");
             document.getElementById("action-day-vote").classList.add("hidden");
+            
             const waitMsg = document.getElementById("action-wait-message");
             waitMsg.classList.remove("hidden");
 
@@ -99,6 +103,14 @@ function renderPlayerUI() {
                     waitMsg.classList.add("hidden");
                 } else if (currentPlayerData.role === "Guardian") {
                     document.getElementById("action-guardian").classList.remove("hidden");
+                    waitMsg.classList.add("hidden");
+                } else if (currentPlayerData.role === "Seer") {
+                    document.getElementById("action-seer").classList.remove("hidden");
+                    document.getElementById("seer-result").classList.add("hidden"); // Reset hasil terawang
+                    waitMsg.classList.add("hidden");
+                } else if (currentPlayerData.role === "Witch") {
+                    document.getElementById("action-witch").classList.remove("hidden");
+                    document.getElementById("witch-status-msg").classList.add("hidden");
                     waitMsg.classList.add("hidden");
                 } else {
                     waitMsg.innerText = "Malam hari... Tetap tenang.";
@@ -134,13 +146,11 @@ function checkWinConditions() {
     }
 }
 
-// Pantau Data Pemain
 onValue(ref(db, `players/${currentPlayerId}`), (snapshot) => {
     currentPlayerData = snapshot.val();
     renderPlayerUI();
 });
 
-// Pantau Seluruh Pemain (Untuk Dropdown & Lobi)
 onValue(ref(db, "players"), (snapshot) => {
     allPlayers = snapshot.val() || {};
     const playerIds = Object.keys(allPlayers);
@@ -157,28 +167,33 @@ onValue(ref(db, "players"), (snapshot) => {
 
     const wSelect = document.getElementById("wolf-target-select");
     const gSelect = document.getElementById("guardian-target-select");
+    const seerSelect = document.getElementById("seer-target-select");
+    const witchPSelect = document.getElementById("witch-poison-select");
+    const witchHSelect = document.getElementById("witch-heal-select");
     const dSelect = document.getElementById("day-vote-select");
 
-    // FIX: Hanya cek 3 dropdown ini karena dropdown mc-execute sudah dihapus
-    if (wSelect && gSelect && dSelect) {
-        wSelect.innerHTML = ""; gSelect.innerHTML = ""; dSelect.innerHTML = "";
+    // Populasikan Semua Dropdown Pilihan
+    if (wSelect && gSelect && dSelect && seerSelect && witchPSelect && witchHSelect) {
+        wSelect.innerHTML = ""; gSelect.innerHTML = ""; dSelect.innerHTML = ""; seerSelect.innerHTML = "";
+        witchPSelect.innerHTML = '<option value="">-- Tidak Meracun --</option>';
+        witchHSelect.innerHTML = '<option value="">-- Tidak Menyembuhkan --</option>';
         
         Object.entries(allPlayers).forEach(([id, p]) => {
             if (!p.isDead) {
                 const opt = `<option value="${id}">${p.name}</option>`;
-                // Malam: Werewolf dan Guardian tidak bisa menargetkan diri sendiri
                 if (id !== currentPlayerId) {
                     wSelect.innerHTML += opt;
                     gSelect.innerHTML += opt;
+                    seerSelect.innerHTML += opt;
                 }
-                // Siang: Bisa vote siapa saja termasuk diri sendiri
                 dSelect.innerHTML += opt;
+                witchPSelect.innerHTML += opt;
+                witchHSelect.innerHTML += opt;
             }
         });
     }
 });
 
-// Pantau State Game & Kondisi Menang
 onValue(ref(db, "gameState"), (snap) => {
     currentGameState = snap.val() || "lobby";
     
@@ -216,18 +231,20 @@ onValue(ref(db, "gameState"), (snap) => {
     }
 });
 
-// Pantau Aksi Malam
 onValue(ref(db, "nightActions"), (snap) => {
     currentNightActions = snap.val() || {};
     if (isMC) {
         const wId = currentNightActions.wolfTarget;
         const gId = currentNightActions.guardianTarget;
+        const wpId = currentNightActions.witchPoisonTarget;
+        const whId = currentNightActions.witchHealTarget;
         document.getElementById("mc-wolf-target").innerText = wId && allPlayers[wId] ? allPlayers[wId].name : "-";
         document.getElementById("mc-guardian-target").innerText = gId && allPlayers[gId] ? allPlayers[gId].name : "-";
+        document.getElementById("mc-witch-poison").innerText = wpId && allPlayers[wpId] ? allPlayers[wpId].name : "-";
+        document.getElementById("mc-witch-heal").innerText = whId && allPlayers[whId] ? allPlayers[whId].name : "-";
     }
 });
 
-// Rekap Hasil Voting Siang
 onValue(ref(db, "votes"), (snap) => {
     currentDayVotes = snap.val() || {};
     if (isMC) {
@@ -251,7 +268,6 @@ onValue(ref(db, "votes"), (snap) => {
     }
 });
 
-// Deklarasi Seri Global
 onValue(ref(db, "voteAlert"), (snap) => {
     const alertTrigger = snap.val();
     if (alertTrigger) {
@@ -274,7 +290,7 @@ document.getElementById("btn-register-player").addEventListener("click", () => {
 document.getElementById("btn-reset-players").addEventListener("click", () => {
     if(confirm("HAPUS SEMUA PEMAIN dari lobi?")) {
         set(ref(db, "players"), null);
-        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null });
+        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "", witchPoisonTarget: "", witchHealTarget: "" }, votes: null, voteAlert: null });
     }
 });
 
@@ -292,17 +308,35 @@ document.getElementById("btn-start-game").addEventListener("click", () => {
     
     rolesPool.sort(() => Math.random() - 0.5); 
     
-    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, winData: null, voteAlert: null };
+    const updates = { gameState: "nacht", nightActions: { wolfTarget: "", guardianTarget: "", witchPoisonTarget: "", witchHealTarget: "" }, votes: null, winData: null, voteAlert: null };
     ids.forEach((id, i) => { updates[`players/${id}/role`] = rolesPool[i]; updates[`players/${id}/isDead`] = false; });
     update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
 
+// Aksi Pemain Malam
 document.getElementById("btn-wolf-kill").addEventListener("click", () => {
     update(ref(db, "nightActions"), { wolfTarget: document.getElementById("wolf-target-select").value });
 });
-
 document.getElementById("btn-guardian-protect").addEventListener("click", () => {
     update(ref(db, "nightActions"), { guardianTarget: document.getElementById("guardian-target-select").value });
+});
+document.getElementById("btn-seer-reveal").addEventListener("click", () => {
+    const targetId = document.getElementById("seer-target-select").value;
+    const target = allPlayers[targetId];
+    if (target) {
+        const roleStr = rollenUebersetzung[target.role] || target.role;
+        const resEl = document.getElementById("seer-result");
+        resEl.innerText = `👁️ ${target.name} adalah ${roleStr}`;
+        resEl.classList.remove("hidden");
+    }
+});
+document.getElementById("btn-witch-poison").addEventListener("click", () => {
+    update(ref(db, "nightActions"), { witchPoisonTarget: document.getElementById("witch-poison-select").value });
+    document.getElementById("witch-status-msg").classList.remove("hidden");
+});
+document.getElementById("btn-witch-heal").addEventListener("click", () => {
+    update(ref(db, "nightActions"), { witchHealTarget: document.getElementById("witch-heal-select").value });
+    document.getElementById("witch-status-msg").classList.remove("hidden");
 });
 
 document.getElementById("btn-submit-vote").addEventListener("click", () => {
@@ -314,25 +348,45 @@ document.getElementById("btn-submit-vote").addEventListener("click", () => {
     });
 });
 
-// MC: Kalkulasi Hasil Malam
+// MC: Kalkulasi Hasil Malam yang Diperbarui (Termasuk Penyihir)
 document.getElementById("btn-resolve-night").addEventListener("click", () => {
     const wTarget = currentNightActions.wolfTarget;
     const gTarget = currentNightActions.guardianTarget;
-    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null };
+    const wpTarget = currentNightActions.witchPoisonTarget;
+    const whTarget = currentNightActions.witchHealTarget;
+    
+    let updates = { gameState: "tag", nightActions: { wolfTarget: "", guardianTarget: "", witchPoisonTarget: "", witchHealTarget: "" }, votes: null, voteAlert: null };
+    let deadList = [];
 
-    if (wTarget && wTarget !== gTarget) {
-        updates[`players/${wTarget}/isDead`] = true;
-        alert(`Kalkulasi: "${allPlayers[wTarget]?.name}" MATI dimangsa Werewolf!`);
-    } else if (wTarget && wTarget === gTarget) {
-        alert("Kalkulasi: Target berhasil dilindungi oleh Guardian.");
+    // Evaluasi gigitan Werewolf (Mati jika tidak dilindungi Guardian ATAU tidak disembuhkan Penyihir)
+    if (wTarget && wTarget !== gTarget && wTarget !== whTarget) {
+        deadList.push(wTarget);
+    }
+    
+    // Evaluasi Racun Penyihir
+    if (wpTarget && wpTarget !== whTarget) {
+        if (!deadList.includes(wpTarget)) deadList.push(wpTarget);
+    }
+
+    if (deadList.length === 0) {
+        alert("🌅 Pagi yang damai! Tidak ada korban jiwa semalam.");
+    } else {
+        let msg = "🌅 Tragedi Terjadi!\nPemain berikut terbunuh semalam:\n\n";
+        deadList.forEach(id => {
+            updates[`players/${id}/isDead`] = true;
+            const targetName = allPlayers[id].name;
+            const targetRole = rollenUebersetzung[allPlayers[id].role] || allPlayers[id].role;
+            msg += `💀 ${targetName} (Peran: ${targetRole})\n`;
+        });
+        alert(msg);
     }
     
     update(ref(db), updates).then(() => {
-        if (wTarget && wTarget !== gTarget) checkWinConditions();
+        if (deadList.length > 0) checkWinConditions();
     });
 });
 
-// MC: Eksekusi Hasil Voting Siang (Otomatis)
+// MC: Eksekusi Hasil Voting Siang (Dengan Deklarasi Peran)
 document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     const votes = Object.values(currentDayVotes);
     
@@ -360,13 +414,15 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     if (topTargets.length === 1) {
         const targetId = topTargets[0];
         const targetName = allPlayers[targetId].name;
+        // Deklarasi Peran Yang Mati Di Sini
+        const targetRole = rollenUebersetzung[allPlayers[targetId].role] || allPlayers[targetId].role;
         
-        alert(`Kalkulasi Selesai: "${targetName}" akan dieksekusi dengan ${maxVotes} suara!`);
+        alert(`⚖️ HASIL VOTING:\n\n"${targetName}" resmi dieksekusi mati oleh warga dengan ${maxVotes} suara!\n\nPeran dia yang sebenarnya adalah: ${targetRole}`);
 
         const updates = {
             [`players/${targetId}/isDead`]: true,
             gameState: "nacht", 
-            nightActions: { wolfTarget: "", guardianTarget: "" },
+            nightActions: { wolfTarget: "", guardianTarget: "", witchPoisonTarget: "", witchHealTarget: "" },
             votes: null,
             voteAlert: null 
         };
@@ -383,9 +439,8 @@ document.getElementById("btn-mc-tally-vote")?.addEventListener("click", () => {
     }
 });
 
-// KONTROL RESET SAAT MENANG KHUSUS MC
 document.getElementById("btn-play-again")?.addEventListener("click", () => {
-    const updates = { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null };
+    const updates = { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "", witchPoisonTarget: "", witchHealTarget: "" }, votes: null, voteAlert: null };
     Object.keys(allPlayers).forEach(id => {
         updates[`players/${id}/role`] = "Belum ada";
         updates[`players/${id}/isDead`] = false;
@@ -396,11 +451,10 @@ document.getElementById("btn-play-again")?.addEventListener("click", () => {
 document.getElementById("btn-restart-all")?.addEventListener("click", () => {
     if(confirm("Yakin ingin mereset semua pemain? Mereka harus registrasi nama ulang.")) {
         set(ref(db, "players"), null);
-        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "" }, votes: null, voteAlert: null });
+        update(ref(db), { gameState: "lobby", winData: null, nightActions: { wolfTarget: "", guardianTarget: "", witchPoisonTarget: "", witchHealTarget: "" }, votes: null, voteAlert: null });
     }
 });
 
-// Kendali Manual MC
 document.getElementById("btn-state-lobby").addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null, voteAlert: null }));
 document.getElementById("btn-state-nacht").addEventListener("click", () => update(ref(db), { gameState: "nacht", votes: null, voteAlert: null }));
 document.getElementById("btn-state-tag").addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null, voteAlert: null }));
