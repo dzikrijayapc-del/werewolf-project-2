@@ -12,56 +12,64 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- DETEKSI MC ---
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('role') === 'mc') {
+const isMC = urlParams.get('role') === 'mc';
+
+// Tampilan awal & MC
+if (isMC) {
     document.getElementById("mc-controls").classList.remove("hidden");
+    document.getElementById("player-panel").classList.add("hidden");
 }
 
-// 1. Pendaftaran Pemain
 window.registerPlayer = function() {
     const name = document.getElementById("player-name").value.trim();
-    if (!name) return alert("Masukkan nama terlebih dahulu!");
-    
+    if (!name) return alert("Masukkan nama!");
     const playerId = "player_" + Date.now();
-    set(ref(db, 'players/' + playerId), {
-        name: name,
-        joinedAt: Date.now()
-    }).then(() => {
-        alert("Berhasil bergabung!");
-        document.getElementById("player-panel").classList.add("hidden");
-    });
+    set(ref(db, 'players/' + playerId), { name: name, role: "Belum ada" });
+    document.getElementById("player-panel").classList.add("hidden");
+    localStorage.setItem("myPlayerId", playerId);
 };
 
-// 2. Real-time Monitoring Pemain
 onValue(ref(db, "players"), (snapshot) => {
     const players = snapshot.val();
     const ul = document.getElementById("players-ul");
-    ul.innerHTML = ""; 
-    
+    ul.innerHTML = "";
     if (players) {
         Object.entries(players).forEach(([id, data]) => {
             const li = document.createElement("li");
-            li.innerText = data.name;
+            li.innerText = `${data.name} ${data.role !== "Belum ada" ? '- ' + data.role : ''}`;
             ul.appendChild(li);
+            
+            // Tampilkan peran ke pemain sendiri
+            if (id === localStorage.getItem("myPlayerId")) {
+                document.getElementById("role-display").innerText = "Peran Anda: " + data.role;
+            }
         });
     }
 });
 
-// 3. FUNGSI MC: Reset & Mulai
-window.resetGame = function() {
-    if(confirm("Hapus semua pemain dan mulai dari awal?")) {
-        remove(ref(db, 'players')).then(() => location.reload());
-    }
-};
-
 window.startGame = function() {
-    update(ref(db), { gameState: "nacht" }).then(() => {
-        alert("Game dimulai! Status berubah ke Malam (Nacht)");
-    });
+    const playersRef = ref(db, 'players');
+    onValue(playersRef, (snapshot) => {
+        const players = snapshot.val();
+        if (!players) return;
+        const ids = Object.keys(players);
+        if (ids.length !== 8) return alert("Butuh 8 pemain! Sekarang: " + ids.length);
+
+        const roles = ["Werewolf", "Werewolf", "Seer", "Guardian", "Witch", "Villager", "Villager", "Villager"];
+        roles.sort(() => Math.random() - 0.5);
+
+        const updates = {};
+        ids.forEach((id, index) => { updates['players/' + id + '/role'] = roles[index]; });
+        updates['gameState'] = "nacht";
+        update(ref(db), updates);
+    }, { onlyOnce: true });
 };
 
-// Loading Screen Logic
+window.resetGame = function() {
+    remove(ref(db, 'players')).then(() => location.reload());
+};
+
 onValue(ref(db, "gameState"), () => {
     document.getElementById("loading-screen").classList.add("hidden");
     document.getElementById("main-content").classList.remove("hidden");
