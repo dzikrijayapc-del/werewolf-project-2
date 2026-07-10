@@ -38,6 +38,7 @@
         .action-btn {
             color: white; border: none; padding: 12px 15px; cursor: pointer;
             width: 100%; border-radius: 8px; font-weight: bold; font-size: 1.1rem;
+            margin-bottom: 10px;
         }
         #btn-wolf-kill { background-color: #ff3b30; }
         #btn-guardian-protect { background-color: #0a84ff; }
@@ -48,10 +49,11 @@
 <body>
 
     <div class="container" id="main-container">
-        <!-- 🛠️ MODE DEVELOPER (Diperluas sampai 8 Pemain) -->
+        <!-- 🛠️ MODE DEVELOPER -->
         <div style="background: #2c2c2e; padding: 12px; margin-bottom: 25px; border-radius: 8px; border: 1px dashed #ff3b30; text-align: left;">
-            <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer (Ganti Akun):</label>
+            <label for="dev-role-select" style="font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🛠️ Mode Developer (Simulasi Akun):</label>
             <select id="dev-role-select" style="margin-top: 5px;">
+                <option value="mc">Moderator (MC)</option>
                 <option value="player_1">Pemain 1</option>
                 <option value="player_2">Pemain 2</option>
                 <option value="player_3">Pemain 3</option>
@@ -60,7 +62,6 @@
                 <option value="player_6">Pemain 6</option>
                 <option value="player_7">Pemain 7</option>
                 <option value="player_8">Pemain 8</option>
-                <option value="mc">Moderator (MC)</option>
             </select>
         </div>
 
@@ -81,7 +82,7 @@
             <div id="lobby-waiting-panel" class="hidden">
                 <h2>Lobi Permainan</h2>
                 <p>Halo <strong id="waiting-player-name" style="color: #ff3b30;">-</strong>,</p>
-                <p>Kamu sudah terdaftar. Mohon tunggu sampai 8 pemain berkumpul dan MC memulai game.</p>
+                <p>Kamu sudah terdaftar. Mohon tunggu sampai pemain lain berkumpul (Min. 4, Maks. 8) dan MC memulai game.</p>
             </div>
 
             <div id="gameplay-role-panel" class="hidden">
@@ -114,12 +115,13 @@
             <div id="mc-lobby-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px;">
                 <h3>Pemain Terdaftar (<span id="player-count-badge">0</span>/8):</h3>
                 <ul id="mc-players-list" style="text-align: left; color: #ff9500;"></ul>
-                <button id="btn-start-game" class="action-btn" style="background-color: #ff9500;">Acak Peran & Mulai 🃏</button>
+                <button id="btn-start-game" class="action-btn" style="background-color: #ff9500; margin-top: 15px;">Acak Peran & Mulai 🃏</button>
+                <button id="btn-reset-players" class="action-btn" style="background-color: #ff3b30;">Hapus & Reset Semua Pemain 🗑️</button>
             </div>
 
             <div id="mc-controls-panel" class="hidden" style="background: #2c2c2e; padding: 15px; border-radius: 8px; margin-top: 20px;">
                 <h3>Fase Permainan</h3>
-                <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Lobi / Reset</button>
+                <button id="btn-state-lobby" style="background: #8e8e93; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Kembali ke Lobi</button>
                 <button id="btn-state-nacht" style="background: #5856d6; padding: 10px; color: white; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Malam 🌙</button>
                 <button id="btn-state-tag" style="background: #ffcc00; padding: 10px; color: black; border:none; border-radius: 5px; font-weight: bold; cursor: pointer;">Siang ☀️</button>
             </div>
