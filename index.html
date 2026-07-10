@@ -45,7 +45,6 @@
             text-shadow: 0 0 30px rgba(255, 59, 48, 0.8);
         }
 
-        /* Anti-Ngintip Role Badge */
         .role-badge {
             display: inline-block; 
             background: linear-gradient(145deg, #2c2c38, #1e1e26); 
@@ -135,22 +134,31 @@
 <body>
 
     <div class="container" id="main-container">
-        <!-- Panel Akses (Diatur oleh JS) -->
-        <div id="player-access-panel" class="hidden" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="font-size: 0.8rem; color: #aaa;">Selamat datang di Desa Terlarang. Siapkan jiwamu.</p>
+        
+        <div id="player-access-panel" class="hidden" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+            <p style="font-size: 0.85rem; color: #a0a0ff; font-weight: bold; margin-bottom: 8px;">Pilih Slot Jiwamu:</p>
+            <select id="player-slot-select" style="margin-bottom: 0; background: rgba(0,0,0,0.8); border: 1px solid #5856d6;">
+                <option value="player_1">Jiwa 1 (Pemain 1)</option>
+                <option value="player_2">Jiwa 2 (Pemain 2)</option>
+                <option value="player_3">Jiwa 3 (Pemain 3)</option>
+                <option value="player_4">Jiwa 4 (Pemain 4)</option>
+                <option value="player_5">Jiwa 5 (Pemain 5)</option>
+                <option value="player_6">Jiwa 6 (Pemain 6)</option>
+                <option value="player_7">Jiwa 7 (Pemain 7)</option>
+                <option value="player_8">Jiwa 8 (Pemain 8)</option>
+            </select>
+            <p style="font-size: 0.75rem; color: #aaa; margin-top: 8px; margin-bottom: 0; font-style: italic;">*Jika nama slot sudah dipakai temanmu, pilih nomor lain.</p>
         </div>
 
         <div id="mc-access-panel" class="hidden" style="background: rgba(255, 59, 48, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ff3b30;">
-            <p style="font-size: 0.8rem; color: #ff3b30; font-weight: bold;">MODE PENGUASA TAKDIR (MC)</p>
+            <p style="font-size: 0.9rem; color: #ff3b30; font-weight: bold; margin: 0;">MODE PENGUASA TAKDIR (MC)</p>
         </div>
 
-        <!-- ⏳ Loading Screen -->
         <div id="loading-screen">
             <h2 style="color: #ff3b30; text-shadow: 0 0 15px #ff3b30;">Menembus Kabut...</h2>
             <p>Mencari jalan menuju desa...</p>
         </div>
 
-        <!-- 🧑‍💻 Player Screen -->
         <div id="player-screen" class="hidden">
             
             <div id="lobby-registration-panel" class="hidden">
@@ -179,7 +187,7 @@
                     
                     <div id="action-werwolf" class="hidden">
                         <h3 style="color: #ff3b30; text-shadow: 0 0 15px rgba(255,59,48,0.6);">Naluri Serigala 🐺</h3>
-                        <p class="hint-text">Darah mendidih di nadimu. Pilih mangsa yang akan kau cabik malam ini (Sepakati bersama kawanmu jika ada!).</p>
+                        <p class="hint-text">Darah mendidih di nadimu. Pilih mangsa yang akan kau cabik malam ini.</p>
                         <select id="wolf-target-select"></select>
                         <button id="btn-wolf-kill" class="action-btn" style="background: linear-gradient(135deg, #ff3b30, #a00000);">Mangsa Sekarang</button>
                     </div>
@@ -193,7 +201,7 @@
 
                     <div id="action-seer" class="hidden">
                         <h3 style="color: #bf5af2; text-shadow: 0 0 15px rgba(191,90,242,0.6);">Mata Batin 🔮</h3>
-                        <p class="hint-text">Pilih satu warga untuk menyingkap tabir kepalsuannya. Apakah dia manusia, atau serigala berbulu domba?</p>
+                        <p class="hint-text">Pilih satu warga untuk menyingkap tabir kepalsuannya.</p>
                         <select id="seer-target-select"></select>
                         <button id="btn-seer-reveal" class="action-btn" style="background: linear-gradient(135deg, #bf5af2, #6b2299);">Terawang Identitas</button>
                         <p id="seer-result" style="color: #e5b0ff; margin-top: 20px; font-size: 1.1em; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid #bf5af2; box-shadow: 0 0 10px rgba(191,90,242,0.3);" class="hidden"></p>
@@ -201,7 +209,7 @@
 
                     <div id="action-witch" class="hidden">
                         <h3 style="color: #32d74b; text-shadow: 0 0 15px rgba(50,215,75,0.6);">Ritual Penyihir 🧪</h3>
-                        <p class="hint-text">Kehidupan dan Kematian ada di tanganmu. Gunakan ramuanmu dengan bijak, karena stoknya terbatas!</p>
+                        <p class="hint-text">Kehidupan dan Kematian ada di tanganmu. Gunakan ramuanmu dengan bijak!</p>
                         
                         <p style="margin-bottom: 5px; font-size: 0.9em; color: #ff3b30; font-weight: bold;">Ramuan Kematian (Racun):</p>
                         <select id="witch-poison-select"></select>
@@ -216,7 +224,7 @@
 
                     <div id="action-day-vote" class="hidden">
                         <h3 style="color: #ffcc00; text-shadow: 0 0 15px rgba(255,204,0,0.6);">Pengadilan Siang ☀️</h3>
-                        <p class="hint-text">Waktu diskusi telah habis! Tunjuk siapa penipu di antara kalian yang pantas digantung hari ini.</p>
+                        <p class="hint-text">Waktu diskusi telah habis! Tunjuk siapa penipu di antara kalian.</p>
                         <select id="day-vote-select"></select>
                         <button id="btn-submit-vote" class="action-btn" style="background: linear-gradient(135deg, #ffcc00, #b38600); color: #000;">Vonis Hukuman</button>
                         <p id="vote-status-msg" style="color: #34c759; margin-top: 10px; font-weight: bold;" class="hidden">Suaramu telah disegel!</p>
@@ -225,7 +233,6 @@
             </div>
         </div>
 
-        <!-- 🎙️ MC Screen -->
         <div id="mc-screen" class="hidden">
             <h2 style="color: #ff3b30; text-shadow: 0 0 15px #ff3b30;">Sang Penguasa Takdir (MC)</h2>
             
@@ -245,7 +252,6 @@
                 </div>
             </div>
             
-            <!-- Monitor MC: Malam -->
             <div id="mc-actions-monitor" class="hidden" style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left;">
                 <h3 style="color: #a0a0ff; border-bottom: 1px solid #333; padding-bottom: 10px;">Laporan Bayangan (Malam):</h3>
                 <p>🐺 Mangsa Serigala: <span id="mc-wolf-target" style="color: #ff3b30; font-weight: bold;">-</span></p>
@@ -256,7 +262,6 @@
                 <button id="btn-resolve-night" class="action-btn" style="background: linear-gradient(135deg, #28a745, #155724); margin-top: 20px;">Kalkulasi Takdir Malam Ini</button>
             </div>
 
-            <!-- Monitor MC: Siang -->
             <div id="mc-day-monitor" class="hidden" style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left;">
                 <h3 style="color: #ffcc00; border-bottom: 1px solid #333; padding-bottom: 10px;">Log Suara Pengadilan (Siang):</h3>
                 <ul id="mc-vote-results" style="color: white; margin-bottom: 15px;"></ul>
@@ -268,25 +273,21 @@
         </div>
     </div>
 
-    <!-- 💀 Layar Kematian -->
     <div id="dead-screen" class="dead-screen hidden">
         <h1 style="font-size: 3em; margin-bottom: 5px;">NAFASMU TERHENTI</h1>
         <h1 style="font-size: 4em; margin-top: 0; margin-bottom: 20px;">💀</h1>
-        <p style="font-size: 1.2em; max-width: 80%; line-height: 1.5;">Darahmu telah membasahi tanah desa. Perjalananmu berakhir di sini. <br><br><span style="color: #aaa; font-size: 0.8em; font-style: italic;">(Jangan bicara atau memberi isyarat apa pun kepada pemain yang masih hidup)</span></p>
+        <p style="font-size: 1.2em; max-width: 80%; line-height: 1.5;">Darahmu telah membasahi tanah desa. Perjalananmu berakhir di sini.</p>
     </div>
 
-    <!-- 🏆 Layar Kemenangan -->
     <div id="win-screen" class="dead-screen hidden" style="background: rgba(0,0,0,0.98); color: #34c759; z-index: 10000;">
         <h1 id="win-message" style="font-size: 2.5rem; text-shadow: 0 0 20px rgba(52,199,89,0.8);">-</h1>
         <p id="win-submessage" style="font-size: 1.2rem; color: #fff; margin-bottom: 40px;"></p>
         
-        <!-- Khusus MC -->
         <div id="mc-win-controls" class="hidden" style="margin-top: 30px; display: flex; gap: 15px; flex-direction: column; width: 80%; max-width: 320px;">
             <button id="btn-play-again" class="action-btn" style="background: linear-gradient(135deg, #28a745, #1e7e34);">Ritual Ulang (Nama Tetap) 🔄</button>
             <button id="btn-restart-all" class="action-btn" style="background: linear-gradient(135deg, #ff3b30, #a00000);">Hapus Total (Reset Lobi) 🗑️</button>
         </div>
         
-        <!-- Khusus Pemain -->
         <p id="player-win-wait" class="hidden" style="color: #a0a0ff; font-style: italic; margin-top: 20px;">Menunggu Penguasa Takdir (MC) untuk memulai ritual baru...</p>
     </div>
     
