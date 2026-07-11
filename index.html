@@ -187,9 +187,10 @@
                     
                     <div id="action-werwolf" class="hidden">
                         <h3 style="color: #ff3b30; text-shadow: 0 0 15px rgba(255,59,48,0.6);">Naluri Serigala 🐺</h3>
-                        <p class="hint-text">Darah mendidih di nadimu. Pilih mangsa yang akan kau cabik malam ini.</p>
+                        <p class="hint-text">Darah mendidih di nadimu. Pilih mangsa yang akan kau cabik malam ini (Jika ada serigala lain, kalian harus memilih target yang SAMA!).</p>
                         <select id="wolf-target-select"></select>
-                        <button id="btn-wolf-kill" class="action-btn" style="background: linear-gradient(135deg, #ff3b30, #a00000);">Mangsa Sekarang</button>
+                        <button id="btn-wolf-kill" class="action-btn" style="background: linear-gradient(135deg, #ff3b30, #a00000);">Kirim Pilihan Mangsa</button>
+                        <p id="wolf-warning" class="hidden" style="color: #ffcc00; font-weight: bold; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid #ffcc00;"></p>
                     </div>
 
                     <div id="action-guardian" class="hidden">
@@ -209,17 +210,21 @@
 
                     <div id="action-witch" class="hidden">
                         <h3 style="color: #32d74b; text-shadow: 0 0 15px rgba(50,215,75,0.6);">Ritual Penyihir 🧪</h3>
-                        <p class="hint-text">Kehidupan dan Kematian ada di tanganmu. Gunakan ramuanmu dengan bijak!</p>
+                        <p class="hint-text">Kehidupan dan Kematian ada di tanganmu. (Hanya bisa menggunakan 1 ramuan per malam!)</p>
                         
-                        <p style="margin-bottom: 5px; font-size: 0.9em; color: #ff3b30; font-weight: bold;">Ramuan Kematian (Racun):</p>
-                        <select id="witch-poison-select"></select>
-                        <button id="btn-witch-poison" class="action-btn" style="background: linear-gradient(135deg, #ff3b30, #7a0000);">Tuang Racun</button>
+                        <div style="background: rgba(255, 59, 48, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #ff3b30;">
+                            <p style="margin-top:0; margin-bottom: 5px; font-size: 0.9em; color: #ff3b30; font-weight: bold;">Ramuan Kematian (Racun):</p>
+                            <select id="witch-poison-select"></select>
+                            <button id="btn-witch-poison" class="action-btn" style="background: linear-gradient(135deg, #ff3b30, #7a0000); margin-bottom: 0;">Tuang Racun</button>
+                        </div>
                         
-                        <p style="margin-top: 20px; margin-bottom: 5px; font-size: 0.9em; color: #0a84ff; font-weight: bold;">Ramuan Kehidupan (Obat):</p>
-                        <select id="witch-heal-select"></select>
-                        <button id="btn-witch-heal" class="action-btn" style="background: linear-gradient(135deg, #0a84ff, #004b99);">Tuang Obat</button>
+                        <div style="background: rgba(10, 132, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px solid #0a84ff;">
+                            <p style="margin-top:0; margin-bottom: 5px; font-size: 0.9em; color: #0a84ff; font-weight: bold;">Ramuan Kehidupan (Obat):</p>
+                            <select id="witch-heal-select"></select>
+                            <button id="btn-witch-heal" class="action-btn" style="background: linear-gradient(135deg, #0a84ff, #004b99); margin-bottom: 0;">Tuang Obat</button>
+                        </div>
                         
-                        <p id="witch-status-msg" style="color: #32d74b; margin-top: 15px; font-weight: bold;" class="hidden">Mantra telah dirapalkan!</p>
+                        <p id="witch-status-msg" style="color: #32d74b; margin-top: 15px; font-weight: bold;" class="hidden"></p>
                     </div>
 
                     <div id="action-day-vote" class="hidden">
