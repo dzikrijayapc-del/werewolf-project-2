@@ -13,33 +13,30 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // 1. BUAT ID BERDASARKAN PILIHAN SLOT (Bukan Random Lagi)
-let currentPlayerId = localStorage.getItem("myPlayerId") || "player_1"; // Default masuk ke player_1
+let currentPlayerId = localStorage.getItem("myPlayerId") || "player_1"; 
 
 // 2. SISTEM AKSES OTOMATIS
 const isMC = new URLSearchParams(window.location.search).get('role') === 'mc';
 
 if (isMC) {
-    // LAYAR MC: Tampilkan MC, Hapus Pemain
     document.getElementById("loading-screen")?.classList.add("hidden");
     document.getElementById("mc-screen")?.classList.remove("hidden");
     document.getElementById("mc-access-panel")?.classList.remove("hidden");
     document.getElementById("player-screen")?.remove(); 
     document.getElementById("player-access-panel")?.remove();
 } else {
-    // LAYAR PEMAIN: Tampilkan Pemain, Hapus MC
     document.getElementById("loading-screen")?.classList.add("hidden");
     document.getElementById("player-screen")?.classList.remove("hidden");
     document.getElementById("player-access-panel")?.classList.remove("hidden");
     document.getElementById("mc-screen")?.remove();
     document.getElementById("mc-access-panel")?.remove();
     
-    // Hubungkan Dropdown Pilihan Slot dengan LocalStorage
     const slotSelect = document.getElementById("player-slot-select");
     if (slotSelect) {
         slotSelect.value = currentPlayerId;
         slotSelect.addEventListener("change", (e) => {
             localStorage.setItem("myPlayerId", e.target.value);
-            window.location.reload(); // Muat ulang agar Firebase membaca ID slot yang baru
+            window.location.reload(); 
         });
     }
 }
@@ -61,7 +58,7 @@ let currentPlayerData = null;
 
 const emptyNightActions = {
     guardianTarget: "",
-    wolfTarget: "",
+    wolfVotes: {}, // Menyimpan voting masing-masing serigala
     seerTarget: "",
     witchHealTarget: "",
     witchPoisonTarget: ""
@@ -253,15 +250,49 @@ onValue(ref(db, "gameState"), (snap) => {
 
 onValue(ref(db, "nightActions"), (snap) => {
     currentNightActions = snap.val() || emptyNightActions;
+    
+    // Hitung Kesepakatan Serigala
+    const wolfVotesObj = currentNightActions.wolfVotes || {};
+    const voteValues = Object.values(wolfVotesObj);
+    const uniqueVotes = [...new Set(voteValues)];
+    
+    let consensusTarget = "";
+    if (uniqueVotes.length === 1) {
+        consensusTarget = uniqueVotes[0];
+    }
+
+    // Layar Peringatan di HP Serigala
+    if (currentPlayerData?.role === "Werewolf") {
+        const warnEl = document.getElementById("wolf-warning");
+        if (warnEl) {
+            if (uniqueVotes.length > 1) {
+                warnEl.innerText = "⚠️ PERINGATAN: Serigala lain memilih mangsa yang berbeda! Diskusikan dan samakan target kalian.";
+                warnEl.style.color = "#ff3b30";
+                warnEl.classList.remove("hidden");
+            } else if (uniqueVotes.length === 1) {
+                warnEl.innerText = "✅ Sepakat menargetkan: " + (allPlayers[consensusTarget]?.name || "...");
+                warnEl.style.color = "#32d74b";
+                warnEl.classList.remove("hidden");
+            }
+        }
+    }
+
     if (isMC) {
-        const wId = currentNightActions.wolfTarget;
         const gId = currentNightActions.guardianTarget;
         const sId = currentNightActions.seerTarget;
         const wpId = currentNightActions.witchPoisonTarget;
         const whId = currentNightActions.witchHealTarget;
         
         const mcW = document.getElementById("mc-wolf-target");
-        if(mcW) mcW.innerText = wId && allPlayers[wId] ? allPlayers[wId].name : "-";
+        if(mcW) {
+            if (uniqueVotes.length > 1) {
+                mcW.innerText = "⚠️ BELUM SEPAKAT!";
+                mcW.style.color = "#ffcc00";
+            } else {
+                mcW.innerText = consensusTarget && allPlayers[consensusTarget] ? allPlayers[consensusTarget].name : "-";
+                mcW.style.color = "#ff3b30";
+            }
+        }
         
         const mcG = document.getElementById("mc-guardian-target");
         if(mcG) mcG.innerText = gId && allPlayers[gId] ? allPlayers[gId].name : "-";
@@ -308,9 +339,6 @@ onValue(ref(db, "voteAlert"), (snap) => {
     }
 });
 
-// ==============================
-// KUMPULAN EVENT LISTENER KLIK
-// ==============================
 
 document.getElementById("btn-register-player")?.addEventListener("click", () => {
     const nameInput = document.getElementById("player-name-input").value.trim();
@@ -346,8 +374,12 @@ document.getElementById("btn-start-game")?.addEventListener("click", () => {
     update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
 
+// Aksi Serigala - Voting Individual
 document.getElementById("btn-wolf-kill")?.addEventListener("click", () => {
-    update(ref(db, "nightActions"), { wolfTarget: document.getElementById("wolf-target-select").value });
+    const targetId = document.getElementById("wolf-target-select").value;
+    if (targetId) {
+        update(ref(db, `nightActions/wolfVotes/${currentPlayerId}`), targetId);
+    }
 });
 
 document.getElementById("btn-guardian-protect")?.addEventListener("click", () => {
@@ -369,14 +401,27 @@ document.getElementById("btn-seer-reveal")?.addEventListener("click", () => {
     }
 });
 
+// Aksi Penyihir - Logika Saling Menimpa (Hanya 1 per malam)
 document.getElementById("btn-witch-poison")?.addEventListener("click", () => {
-    update(ref(db, "nightActions"), { witchPoisonTarget: document.getElementById("witch-poison-select").value });
-    document.getElementById("witch-status-msg")?.classList.remove("hidden");
+    const targetId = document.getElementById("witch-poison-select").value;
+    if (targetId) {
+        update(ref(db, "nightActions"), { witchPoisonTarget: targetId, witchHealTarget: "" });
+        const msg = document.getElementById("witch-status-msg");
+        msg.innerText = "Racun telah disiapkan! (Obat dibatalkan jika ada)";
+        msg.style.color = "#ff3b30";
+        msg.classList.remove("hidden");
+    }
 });
 
 document.getElementById("btn-witch-heal")?.addEventListener("click", () => {
-    update(ref(db, "nightActions"), { witchHealTarget: document.getElementById("witch-heal-select").value });
-    document.getElementById("witch-status-msg")?.classList.remove("hidden");
+    const targetId = document.getElementById("witch-heal-select").value;
+    if (targetId) {
+        update(ref(db, "nightActions"), { witchHealTarget: targetId, witchPoisonTarget: "" });
+        const msg = document.getElementById("witch-status-msg");
+        msg.innerText = "Obat telah disiapkan! (Racun dibatalkan jika ada)";
+        msg.style.color = "#0a84ff";
+        msg.classList.remove("hidden");
+    }
 });
 
 document.getElementById("btn-submit-vote")?.addEventListener("click", () => {
@@ -390,8 +435,17 @@ document.getElementById("btn-submit-vote")?.addEventListener("click", () => {
     });
 });
 
+// Kalkulasi Malam (MC)
 document.getElementById("btn-resolve-night")?.addEventListener("click", () => {
-    const wTarget = currentNightActions.wolfTarget;
+    const wolfVotesObj = currentNightActions.wolfVotes || {};
+    const uniqueVotes = [...new Set(Object.values(wolfVotesObj))];
+    
+    // Cegah MC memajukan waktu jika serigala bentrok
+    if (uniqueVotes.length > 1) {
+        return alert("⚠️ Serigala belum mencapai kesepakatan! Suruh mereka berdiskusi dan pilih target yang sama.");
+    }
+    
+    const wTarget = uniqueVotes.length === 1 ? uniqueVotes[0] : "";
     const gTarget = currentNightActions.guardianTarget;
     const wpTarget = currentNightActions.witchPoisonTarget;
     const whTarget = currentNightActions.witchHealTarget;
