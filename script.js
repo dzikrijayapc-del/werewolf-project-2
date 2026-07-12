@@ -374,12 +374,30 @@ document.getElementById("btn-start-game")?.addEventListener("click", () => {
     update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
 
-// Aksi Serigala - Voting Individual
+// Hapus semua pendengar btn-wolf-kill yang lama, ganti dengan ini saja:
 document.getElementById("btn-wolf-kill")?.addEventListener("click", () => {
-    const targetId = document.getElementById("wolf-target-select").value;
-    if (targetId) {
-        update(ref(db, `nightActions/wolfVotes/${currentPlayerId}`), targetId);
+    const selectEl = document.getElementById("wolf-target-select");
+    const targetId = selectEl ? selectEl.value : "";
+    
+    if (!currentPlayerId) {
+        alert("Error: ID Pemain tidak ditemukan.");
+        return;
     }
+    if (!targetId) {
+        alert("Pilih target terlebih dahulu!");
+        return;
+    }
+
+    // Gunakan set agar vote tersimpan bersih di database
+    set(ref(db, `nightActions/wolfVotes/${currentPlayerId}`), targetId)
+        .then(() => {
+            console.log("Success: Vote dikirim ke nightActions/wolfVotes/" + currentPlayerId);
+            alert("Berhasil memilih target!");
+        })
+        .catch((error) => {
+            console.error("Gagal mengirim vote:", error);
+            alert("Gagal kirim vote, cek koneksi!");
+        });
 });
 
 document.getElementById("btn-guardian-protect")?.addEventListener("click", () => {
