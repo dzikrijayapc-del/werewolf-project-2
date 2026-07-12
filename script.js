@@ -549,3 +549,28 @@ document.getElementById("btn-restart-all")?.addEventListener("click", () => {
 document.getElementById("btn-state-lobby")?.addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null, voteAlert: null }));
 document.getElementById("btn-state-nacht")?.addEventListener("click", () => update(ref(db), { gameState: "nacht", nightActions: emptyNightActions, votes: null, voteAlert: null }));
 document.getElementById("btn-state-tag")?.addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null, voteAlert: null }));
+
+document.getElementById("btn-wolf-kill")?.addEventListener("click", () => {
+    const targetId = document.getElementById("wolf-target-select").value;
+    
+    // 1. Validasi ID
+    if (!currentPlayerId) {
+        alert("Error: ID Pemain tidak ditemukan. Coba refresh halaman.");
+        return;
+    }
+    if (!targetId) {
+        alert("Pilih target terlebih dahulu!");
+        return;
+    }
+
+    // 2. Gunakan set, dan tambahkan .catch untuk melihat error di console
+    set(ref(db, `nightActions/wolfVotes/${currentPlayerId}`), targetId)
+        .then(() => {
+            console.log("Success: Vote dikirim ke nightActions/wolfVotes/" + currentPlayerId);
+            alert("Berhasil memilih target!");
+        })
+        .catch((error) => {
+            console.error("Gagal mengirim vote ke Firebase:", error);
+            alert("Gagal kirim vote, cek koneksi atau console!");
+        });
+});
