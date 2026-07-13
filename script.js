@@ -12,7 +12,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// 1. BUAT ID BERDASARKAN PILIHAN SLOT (Bukan Random Lagi)
+// 1. BUAT ID BERDASARKAN PILIHAN SLOT
 let currentPlayerId = localStorage.getItem("myPlayerId") || "player_1"; 
 
 // 2. SISTEM AKSES OTOMATIS
@@ -58,7 +58,7 @@ let currentPlayerData = null;
 
 const emptyNightActions = {
     guardianTarget: "",
-    wolfVotes: {}, // Menyimpan voting masing-masing serigala
+    wolfVotes: {},
     seerTarget: "",
     witchHealTarget: "",
     witchPoisonTarget: ""
@@ -114,7 +114,6 @@ function renderPlayerUI() {
                     waitMsg?.classList.add("hidden");
                 } else if (currentPlayerData.role === "Seer") {
                     document.getElementById("action-seer")?.classList.remove("hidden");
-                    document.getElementById("seer-result")?.classList.add("hidden");
                     waitMsg?.classList.add("hidden");
                 } else if (currentPlayerData.role === "Witch") {
                     document.getElementById("action-witch")?.classList.remove("hidden");
@@ -243,6 +242,11 @@ onValue(ref(db, "gameState"), (snap) => {
         document.getElementById("mc-controls-panel")?.classList.toggle("hidden", currentGameState === "lobby");
         document.getElementById("mc-actions-monitor")?.classList.toggle("hidden", currentGameState !== "nacht");
         document.getElementById("mc-day-monitor")?.classList.toggle("hidden", currentGameState !== "tag");
+        
+        // Reset Seer Result UI saat masuk phase baru
+        if(currentGameState !== "nacht"){
+             document.getElementById("seer-result")?.classList.add("hidden");
+        }
     } else {
         renderPlayerUI(); 
     }
@@ -251,7 +255,6 @@ onValue(ref(db, "gameState"), (snap) => {
 onValue(ref(db, "nightActions"), (snap) => {
     currentNightActions = snap.val() || emptyNightActions;
     
-    // Hitung Kesepakatan Serigala
     const wolfVotesObj = currentNightActions.wolfVotes || {};
     const voteValues = Object.values(wolfVotesObj);
     const uniqueVotes = [...new Set(voteValues)];
@@ -261,7 +264,6 @@ onValue(ref(db, "nightActions"), (snap) => {
         consensusTarget = uniqueVotes[0];
     }
 
-    // Layar Peringatan di HP Serigala
     if (currentPlayerData?.role === "Werewolf") {
         const warnEl = document.getElementById("wolf-warning");
         if (warnEl) {
@@ -374,39 +376,34 @@ document.getElementById("btn-start-game")?.addEventListener("click", () => {
     update(ref(db), updates).then(() => alert(`Game Dimulai dengan ${count} pemain!`));
 });
 
-// Hapus semua pendengar btn-wolf-kill yang lama, ganti dengan ini saja:
+// Aksi Serigala - Voting Individual (Telah Diperbaiki)
 document.getElementById("btn-wolf-kill")?.addEventListener("click", () => {
-    const selectEl = document.getElementById("wolf-target-select");
-    const targetId = selectEl ? selectEl.value : "";
+    const targetId = document.getElementById("wolf-target-select").value;
     
-    if (!currentPlayerId) {
-        alert("Error: ID Pemain tidak ditemukan.");
-        return;
-    }
-    if (!targetId) {
-        alert("Pilih target terlebih dahulu!");
-        return;
-    }
+    if (!currentPlayerId) return alert("Error: ID Pemain tidak ditemukan.");
+    if (!targetId) return alert("Pilih target terlebih dahulu!");
 
-    // Gunakan set agar vote tersimpan bersih di database
     set(ref(db, `nightActions/wolfVotes/${currentPlayerId}`), targetId)
-        .then(() => {
-            console.log("Success: Vote dikirim ke nightActions/wolfVotes/" + currentPlayerId);
-            alert("Berhasil memilih target!");
-        })
+        .then(() => alert("Berhasil memilih target!"))
         .catch((error) => {
-            console.error("Gagal mengirim vote:", error);
+            console.error("Gagal mengirim vote ke Firebase:", error);
             alert("Gagal kirim vote, cek koneksi!");
         });
 });
 
 document.getElementById("btn-guardian-protect")?.addEventListener("click", () => {
-    update(ref(db, "nightActions"), { guardianTarget: document.getElementById("guardian-target-select").value });
+    update(ref(db, "nightActions"), { guardianTarget: document.getElementById("guardian-target-select").value })
+        .then(() => alert("Perlindungan diaktifkan!"));
 });
 
+// Aksi Penerawang - Anti Spam (Telah Diperbaiki)
 document.getElementById("btn-seer-reveal")?.addEventListener("click", () => {
+    if (currentNightActions && currentNightActions.seerTarget !== "") {
+        return alert("🔮 Kamu hanya bisa menerawang SATU pemain setiap malam!");
+    }
+
     const targetId = document.getElementById("seer-target-select").value;
-    if (!targetId) return;
+    if (!targetId) return alert("Pilih pemain terlebih dahulu!");
     
     update(ref(db, "nightActions"), { seerTarget: targetId });
     
@@ -419,7 +416,7 @@ document.getElementById("btn-seer-reveal")?.addEventListener("click", () => {
     }
 });
 
-// Aksi Penyihir - Logika Saling Menimpa (Hanya 1 per malam)
+// Aksi Penyihir
 document.getElementById("btn-witch-poison")?.addEventListener("click", () => {
     const targetId = document.getElementById("witch-poison-select").value;
     if (targetId) {
@@ -458,7 +455,6 @@ document.getElementById("btn-resolve-night")?.addEventListener("click", () => {
     const wolfVotesObj = currentNightActions.wolfVotes || {};
     const uniqueVotes = [...new Set(Object.values(wolfVotesObj))];
     
-    // Cegah MC memajukan waktu jika serigala bentrok
     if (uniqueVotes.length > 1) {
         return alert("⚠️ Serigala belum mencapai kesepakatan! Suruh mereka berdiskusi dan pilih target yang sama.");
     }
@@ -567,28 +563,3 @@ document.getElementById("btn-restart-all")?.addEventListener("click", () => {
 document.getElementById("btn-state-lobby")?.addEventListener("click", () => update(ref(db), { gameState: "lobby", votes: null, voteAlert: null }));
 document.getElementById("btn-state-nacht")?.addEventListener("click", () => update(ref(db), { gameState: "nacht", nightActions: emptyNightActions, votes: null, voteAlert: null }));
 document.getElementById("btn-state-tag")?.addEventListener("click", () => update(ref(db), { gameState: "tag", votes: null, voteAlert: null }));
-
-document.getElementById("btn-wolf-kill")?.addEventListener("click", () => {
-    const targetId = document.getElementById("wolf-target-select").value;
-    
-    // 1. Validasi ID
-    if (!currentPlayerId) {
-        alert("Error: ID Pemain tidak ditemukan. Coba refresh halaman.");
-        return;
-    }
-    if (!targetId) {
-        alert("Pilih target terlebih dahulu!");
-        return;
-    }
-
-    // 2. Gunakan set, dan tambahkan .catch untuk melihat error di console
-    set(ref(db, `nightActions/wolfVotes/${currentPlayerId}`), targetId)
-        .then(() => {
-            console.log("Success: Vote dikirim ke nightActions/wolfVotes/" + currentPlayerId);
-            alert("Berhasil memilih target!");
-        })
-        .catch((error) => {
-            console.error("Gagal mengirim vote ke Firebase:", error);
-            alert("Gagal kirim vote, cek koneksi atau console!");
-        });
-});
